@@ -1,0 +1,141 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #0a0a0f;
+  --surface: #12121a;
+  --surface-2: #1a1a26;
+  --violet: #8b5cf6;
+  --cyan: #06b6d4;
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+  background: var(--bg);
+  color: #f1f5f9;
+  font-family: 'Inter', sans-serif;
+  scroll-behavior: smooth;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #0a0a0f;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(139, 92, 246, 0.5);
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(139, 92, 246, 0.8);
+}
+
+/* Firefox scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(139, 92, 246, 0.5) #0a0a0f;
+}
+
+/* Selection */
+::selection {
+  background: rgba(139, 92, 246, 0.3);
+  color: #fff;
+}
+
+/* Glass card utility */
+.glass {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-strong {
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+/* Gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.gradient-text-warm {
+  background: linear-gradient(135deg, #a78bfa 0%, #818cf8 50%, #06b6d4 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Glow effects */
+.glow-violet {
+  box-shadow: 0 0 30px rgba(139, 92, 246, 0.2), 0 0 60px rgba(139, 92, 246, 0.05);
+}
+.glow-cyan {
+  box-shadow: 0 0 30px rgba(6, 182, 212, 0.2), 0 0 60px rgba(6, 182, 212, 0.05);
+}
+
+/* Monaco editor host overrides */
+.monaco-editor,
+.monaco-editor-background,
+.monaco-editor .margin {
+  background-color: #0d0d14 !important;
+}
+
+/* Prose styles for markdown */
+.lesson-prose h1 { @apply text-2xl font-bold text-white mb-4 mt-6; }
+.lesson-prose h2 { @apply text-xl font-semibold text-violet-400 mb-3 mt-5 pb-2 border-b border-white/10; }
+.lesson-prose h3 { @apply text-lg font-semibold text-slate-200 mb-2 mt-4; }
+.lesson-prose p  { @apply text-slate-300 leading-relaxed mb-3; }
+.lesson-prose ul { @apply list-disc list-inside text-slate-300 mb-3 space-y-1; }
+.lesson-prose ol { @apply list-decimal list-inside text-slate-300 mb-3 space-y-1; }
+.lesson-prose li { @apply leading-relaxed; }
+.lesson-prose strong { @apply text-white font-semibold; }
+.lesson-prose em { @apply text-violet-400 italic; }
+.lesson-prose code { @apply font-mono text-sm bg-violet-500/10 text-violet-300 px-1.5 py-0.5 rounded; }
+.lesson-prose pre  { @apply font-mono text-sm bg-[#0d0d14] border border-white/10 rounded-lg p-4 mb-4 overflow-x-auto; }
+.lesson-prose pre code { @apply bg-transparent text-slate-300 px-0 py-0; }
+.lesson-prose blockquote { @apply border-l-4 border-violet-500 pl-4 italic text-slate-400 mb-4 bg-violet-500/5 py-2 rounded-r; }
+.lesson-prose img { @apply rounded-xl w-full object-cover mb-4 border border-white/10; }
+.lesson-prose a  { @apply text-cyan-400 underline hover:text-cyan-300; }
+.lesson-prose hr { @apply border-white/10 my-6; }
+.lesson-prose table { @apply w-full text-sm mb-4 border-collapse; }
+.lesson-prose th { @apply text-left p-2 border border-white/10 text-violet-300 bg-violet-500/10; }
+.lesson-prose td { @apply p-2 border border-white/10 text-slate-300; }
+
+/* Animated border gradient */
+@keyframes borderRotate {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+.animated-border {
+  background: linear-gradient(270deg, #8b5cf6, #06b6d4, #8b5cf6);
+  background-size: 400% 400%;
+  animation: borderRotate 4s ease infinite;
+}
+
+/* Progress bar */
+.progress-bar-inner {
+  background: linear-gradient(90deg, #8b5cf6, #06b6d4);
+  transition: width 0.4s ease;
+}
