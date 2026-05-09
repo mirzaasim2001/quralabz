@@ -244,6 +244,72 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ── Articles / Blog Section ────────────────────────── */}
+      <section className="relative z-10 px-4 sm:px-6 py-24 overflow-hidden">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-14">
+            <span className="inline-block px-4 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs font-semibold uppercase tracking-widest mb-4">
+              Learning Guides
+            </span>
+            <h2 className="text-4xl sm:text-5xl font-black text-white tracking-tight mb-4">
+              Start Here If You&apos;re New
+            </h2>
+            <p className="text-slate-500 max-w-xl mx-auto text-base">
+              Not sure where to begin? These guides give you the context to learn smarter — not harder.
+            </p>
+          </div>
+
+          <div className="grid sm:grid-cols-3 gap-6">
+            {[
+              {
+                tag: "Python",
+                tagColor: "text-violet-400 bg-violet-500/10 border-violet-500/20",
+                title: "Beginner Python Guide: Your First Step into Data Science",
+                body: "Python is the world's most popular language for data science — and for good reason. Unlike C++ or Java, Python reads almost like plain English, which means you spend less time fighting syntax and more time solving real problems.\n\nWhen you write x = 5 in Python, you've just created a variable. When you write for item in my_list, you're looping over data. The simplicity is intentional — Python was designed to be human-first.\n\nHere's what you actually learn in a Python data science journey: variables and data types (integers, strings, lists, dictionaries), control flow (if/else, for loops, while loops), functions to reuse logic, and then the powerful libraries — NumPy for numbers, Pandas for tables, and Matplotlib for charts.\n\nThe mistake most beginners make is learning Python in isolation — doing exercises that print 'Hello World' but never touching real data. The right approach is to learn Python and data manipulation together, which is exactly how QuraLabz is structured. Every concept is immediately applied to data problems, not toy examples.",
+                icon: "🐍",
+              },
+              {
+                tag: "Machine Learning",
+                tagColor: "text-cyan-400 bg-cyan-500/10 border-cyan-500/20",
+                title: "What is Machine Learning? (Plain English, No Math Required)",
+                body: "Machine learning is not magic — it is pattern recognition at scale. Here is the core idea: instead of a programmer writing rules like 'if the email contains the word FREE and has more than 3 exclamation marks, mark it as spam', you show the computer 10,000 examples of spam and 10,000 examples of normal emails, and it figures out the rules itself.\n\nThat process of figuring out the rules is called training. The result — the set of learned rules — is called a model. When you later give the model a new email it has never seen, it applies those rules to make a prediction. That is inference.\n\nThere are three main types of machine learning. Supervised learning is where you have labeled examples (spam / not spam, house price, patient diagnosis). Unsupervised learning is where you have data but no labels, and the model finds hidden structure — like grouping customers by buying behavior. Reinforcement learning is where an agent learns by trial and error, like a game-playing AI.\n\nThe reason ML has exploded is compute: the same algorithms that existed in the 1990s now run on GPUs that are 1000x faster, with internet-scale datasets. The math hasn't changed — the hardware has.",
+                icon: "🤖",
+              },
+              {
+                tag: "Career",
+                tagColor: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
+                title: "Data Science Roadmap 2026: From Zero to Job-Ready",
+                body: "The data science field looks overwhelming from the outside — there are dozens of tools, languages, and frameworks all competing for your attention. But hiring managers care about a surprisingly small core skill set, and if you master it, everything else follows.\n\nHere is the honest roadmap: Start with Python (2–4 weeks). Not all of Python — just enough to manipulate data: lists, dictionaries, loops, functions, and basic file I/O. Next, learn NumPy and Pandas (3–4 weeks). These two libraries are how 90% of real data work gets done. Then learn visualization with Matplotlib and Seaborn (1–2 weeks) — because a chart communicates what a table cannot.\n\nAfter that foundation, learn the statistics you actually need: mean, median, standard deviation, correlation, and basic probability. Then move into machine learning with scikit-learn — linear regression, decision trees, random forests, and cross-validation.\n\nThe most important step most people skip: build 2–3 projects on real datasets. Kaggle, UCI Machine Learning Repository, and government open data portals are free sources. A GitHub portfolio with 3 solid projects beats a certificate from any course platform.\n\nIn 2026, knowing how to prompt LLMs and integrate AI APIs is also a differentiator — which is why QuraLabz includes Generative AI and Agentic AI modules.",
+                icon: "🗺️",
+              },
+            ].map((article, i) => (
+              <div
+                key={i}
+                className="group relative flex flex-col gap-5 p-7 rounded-3xl bg-white/[0.03] border border-white/8 hover:border-violet-500/30 hover:bg-white/[0.06] transition-all duration-300 shadow-xl shadow-black/20"
+              >
+                {/* Glow on hover */}
+                <div className="pointer-events-none absolute inset-0 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-gradient-to-br from-violet-500/5 to-cyan-500/5" />
+
+                <div className="flex items-center justify-between">
+                  <span className={`px-3 py-1 rounded-full border text-xs font-semibold ${article.tagColor}`}>
+                    {article.tag}
+                  </span>
+                  <span className="text-2xl">{article.icon}</span>
+                </div>
+
+                <h3 className="text-lg font-bold text-white leading-snug group-hover:text-violet-200 transition-colors duration-300">
+                  {article.title}
+                </h3>
+
+                <p className="text-slate-500 text-sm leading-relaxed flex-1 whitespace-pre-line">
+                  {article.body}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ═══════════════════════════════════════════════════════
           ADSENSE PLACEMENT: Footer Leaderboard
           Recommended size: 970×90 or 728×90

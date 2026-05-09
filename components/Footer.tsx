@@ -106,7 +106,7 @@ export default function Footer() {
             <Heart className="w-4 h-4 text-red-500 fill-red-500" />
             <p>for learners everywhere</p>
           </div>
-          <p>© 2024-2026 QuraLabz. All rights reserved.</p>
+          <p>© 2026 QuraLabz. All rights reserved.</p>
         </div>
 
         {/* Compliance Notice */}
