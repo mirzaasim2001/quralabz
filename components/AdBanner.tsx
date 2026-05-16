@@ -5,9 +5,10 @@ import { useEffect } from "react";
 interface AdBannerProps {
   slot?: string;
   className?: string;
+  compact?: boolean;
 }
 
-export default function AdBanner({ slot = "5653311187", className = "" }: AdBannerProps) {
+export default function AdBanner({ slot = "5653311187", className = "", compact = false }: AdBannerProps) {
   useEffect(() => {
     const initAd = () => {
       try {
@@ -26,13 +27,13 @@ export default function AdBanner({ slot = "5653311187", className = "" }: AdBann
   }, []);
 
   return (
-    <div style={{ width: "100%", minHeight: "280px" }} className={className}>
+    <div style={{ width: "100%", minHeight: compact ? "100px" : "280px" }} className={className}>
       <ins
         className="adsbygoogle"
         style={{
           display: "block",
           width: "100%",
-          minHeight: "280px",
+          minHeight: compact ? "100px" : "280px",
         }}
         data-ad-client="ca-pub-8931192509547294"
         data-ad-slot={slot}

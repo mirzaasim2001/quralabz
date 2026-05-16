@@ -273,7 +273,7 @@ export default function LessonPage({ params }: Props) {
 
               {/* In-article ad placement (after content) */}
               <div className="my-8" aria-label="Advertisement">
-                <AdBanner />
+                <AdBanner compact />
               </div>
             </div>
 
