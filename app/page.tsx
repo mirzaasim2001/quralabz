@@ -5,6 +5,7 @@ import { modules } from "@/data/lessons";
 import ParticleNetwork from "@/components/ParticleNetwork";
 import dynamic from "next/dynamic";
 const ModuleLessonSearch = dynamic(() => import("../components/ModuleLessonSearch"), { ssr: false });
+const AdBanner = dynamic(() => import("@/components/AdBanner"), { ssr: false });
 
 export default function HomePage() {
   return (
@@ -27,12 +28,11 @@ export default function HomePage() {
       ═══════════════════════════════════════════════════════ */}
       <div className="relative z-10">
         <div
-          id="adsense-top-banner"
           aria-label="Advertisement"
-          className="w-full flex justify-center bg-[#0d0d14]/80 backdrop-blur-sm border-b border-white/5"
+          className="w-full bg-[#0d0d14]/80 backdrop-blur-sm border-b border-white/5"
           style={{ minHeight: "90px" }}
         >
-          {/* INSERT TOP BANNER ADSENSE TAG HERE */}
+          <AdBanner />
         </div>
       </div>
 
@@ -316,12 +316,11 @@ export default function HomePage() {
           Position: Just above the page footer.
       ═══════════════════════════════════════════════════════ */}
       <div
-        id="adsense-footer-leaderboard"
         aria-label="Advertisement"
-        className="w-full flex justify-center py-6 bg-[#0a0a0f] relative z-10"
+        className="w-full py-6 bg-[#0a0a0f] relative z-10"
         style={{ minHeight: "100px" }}
       >
-        {/* INSERT FOOTER ADSENSE TAG HERE */}
+        <AdBanner />
       </div>
 
       {/* ── Footer ─────────────────────────────────────────── */}

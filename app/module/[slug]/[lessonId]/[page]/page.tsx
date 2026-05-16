@@ -7,6 +7,8 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { getModuleBySlug, getLessonById, type Module, type Lesson, type LessonPage } from "@/data/lessons";
 import CodePlayground from "@/components/CodePlayground";
+import dynamic from "next/dynamic";
+const AdBanner = dynamic(() => import("@/components/AdBanner"), { ssr: false });
 import {
   ArrowLeft,
   ArrowRight,
@@ -270,13 +272,8 @@ export default function LessonPage({ params }: Props) {
               </div>
 
               {/* In-article ad placement (after content) */}
-              <div
-                id={`adsense-lesson-inline-${params.lessonId}-${pageNumber}`}
-                aria-label="Advertisement"
-                className="my-8 flex justify-center"
-                style={{ minHeight: "250px" }}
-              >
-                {/* INSERT IN-ARTICLE ADSENSE TAG HERE */}
+              <div className="my-8" aria-label="Advertisement">
+                <AdBanner />
               </div>
             </div>
 

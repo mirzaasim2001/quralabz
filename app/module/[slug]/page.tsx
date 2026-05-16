@@ -4,6 +4,8 @@ import { getModuleBySlug } from "@/data/lessons";
 import { BookOpen, Clock, ChevronRight, ArrowLeft, Play, CheckCircle2, Lock } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import LessonList from "./LessonList";
+import dynamic from "next/dynamic";
+const AdBanner = dynamic(() => import("@/components/AdBanner"), { ssr: false });
 
 interface Props {
   params: { slug: string };
@@ -40,12 +42,11 @@ export default function ModulePage({ params }: Props) {
           Size: 728×90 leaderboard / 320×100 mobile
       ═══════════════════════════════════════════════════════ */}
       <div
-        id={`adsense-module-${mod.slug}-top`}
         aria-label="Advertisement"
-        className="w-full flex justify-center bg-[#0d0d14] border-b border-white/5"
+        className="w-full bg-[#0d0d14] border-b border-white/5"
         style={{ minHeight: "90px" }}
       >
-        {/* INSERT ADSENSE TAG HERE */}
+        <AdBanner />
       </div>
 
       {/* ── Module Hero ───────────────────────────────────── */}
