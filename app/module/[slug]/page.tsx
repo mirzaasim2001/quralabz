@@ -44,7 +44,6 @@ export default function ModulePage({ params }: Props) {
       <div
         aria-label="Advertisement"
         className="w-full bg-[#0d0d14] border-b border-white/5"
-        style={{ minHeight: "90px" }}
       >
         <AdBanner />
       </div>

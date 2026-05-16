@@ -30,7 +30,6 @@ export default function HomePage() {
         <div
           aria-label="Advertisement"
           className="w-full bg-[#0d0d14]/80 backdrop-blur-sm border-b border-white/5"
-          style={{ minHeight: "90px" }}
         >
           <AdBanner />
         </div>
@@ -318,7 +317,6 @@ export default function HomePage() {
       <div
         aria-label="Advertisement"
         className="w-full py-6 bg-[#0a0a0f] relative z-10"
-        style={{ minHeight: "100px" }}
       >
         <AdBanner />
       </div>
