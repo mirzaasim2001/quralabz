@@ -27,15 +27,16 @@ export default function AdBanner({ slot = "5653311187", className = "", compact 
   }, []);
 
   return (
-    <div style={{ width: "100%", minHeight: "90px" }} className={className}>
+    <div
+      style={{ width: "100%", height: "90px", overflow: "hidden" }}
+      className={className}
+    >
       <ins
         className="adsbygoogle"
         style={{
           display: "block",
           width: "100%",
-          minHeight: "90px",
-          maxWidth: "728px",
-          margin: "0 auto",
+          height: "90px",
         }}
         data-ad-client="ca-pub-8931192509547294"
         data-ad-slot={slot}
