@@ -7,8 +7,6 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { getModuleBySlug, getLessonById, type Module, type Lesson, type LessonPage } from "@/data/lessons";
 import CodePlayground from "@/components/CodePlayground";
-import dynamic from "next/dynamic";
-const AdBanner = dynamic(() => import("@/components/AdBanner"), { ssr: false });
 import {
   ArrowLeft,
   ArrowRight,
@@ -269,11 +267,6 @@ export default function LessonPage({ params }: Props) {
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
                   {currentPage.content}
                 </ReactMarkdown>
-              </div>
-
-              {/* In-article ad placement (after content) */}
-              <div className="my-8" aria-label="Advertisement">
-                <AdBanner compact />
               </div>
             </div>
 
