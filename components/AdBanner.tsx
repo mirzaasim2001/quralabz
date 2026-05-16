@@ -9,25 +9,31 @@ interface AdBannerProps {
 
 export default function AdBanner({ slot = "5653311187", className = "" }: AdBannerProps) {
   useEffect(() => {
-    const timer = setTimeout(() => {
+    const initAd = () => {
       try {
         const w = window as any;
-        if (w.adsbygoogle) {
+        if (typeof window !== "undefined" && w.adsbygoogle) {
           (w.adsbygoogle = w.adsbygoogle || []).push({});
+        } else {
+          setTimeout(initAd, 500);
         }
       } catch (e) {
         console.error("AdSense push error:", e);
       }
-    }, 500);
+    };
 
-    return () => clearTimeout(timer);
+    initAd();
   }, []);
 
   return (
-    <div style={{ minHeight: "250px", width: "100%", textAlign: "center" }} className={className}>
+    <div style={{ width: "100%", minHeight: "280px" }} className={className}>
       <ins
         className="adsbygoogle"
-        style={{ display: "block" }}
+        style={{
+          display: "block",
+          width: "100%",
+          minHeight: "280px",
+        }}
         data-ad-client="ca-pub-8931192509547294"
         data-ad-slot={slot}
         data-ad-format="auto"
