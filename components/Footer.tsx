@@ -22,7 +22,12 @@ export default function Footer() {
           {/* Learning Links */}
           <div>
             <h4 className="text-sm font-semibold text-white mb-4">Learning</h4>
-            <ul className="space-y-2 text-sm text-slate-400">
+          <ul className="space-y-2 text-sm text-slate-400">
+              <li>
+                <Link href="/lessons" className="hover:text-cyan-400 transition-colors font-semibold text-slate-300">
+                  All Lessons
+                </Link>
+              </li>
               <li>
                 <Link href="/module/python" className="hover:text-cyan-400 transition-colors">
                   Python Fundamentals
