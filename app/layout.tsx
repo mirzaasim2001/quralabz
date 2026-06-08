@@ -119,6 +119,7 @@ export default function RootLayout({
           ═══════════════════════════════════════════════════════ */}
           <div
             id="adsense-bottom-sticky"
+            role="region"
             aria-label="Advertisement"
             className="fixed bottom-0 left-0 right-0 z-40 flex justify-center
               bg-[#0a0a0f]/80 backdrop-blur-md border-t border-white/8 py-1

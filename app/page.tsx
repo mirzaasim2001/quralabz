@@ -28,6 +28,7 @@ export default function HomePage() {
       ═══════════════════════════════════════════════════════ */}
       <div className="relative z-10">
         <div
+          role="region"
           aria-label="Advertisement"
           className="w-full bg-[#0d0d14]/80 backdrop-blur-sm border-b border-white/5"
         >
@@ -315,6 +316,7 @@ export default function HomePage() {
           Position: Just above the page footer.
       ═══════════════════════════════════════════════════════ */}
       <div
+        role="region"
         aria-label="Advertisement"
         className="w-full py-6 bg-[#0a0a0f] relative z-10"
       >
@@ -322,12 +324,12 @@ export default function HomePage() {
       </div>
 
       {/* ── Footer ─────────────────────────────────────────── */}
-      <footer className="relative z-10 border-t border-white/5 px-4 py-10 text-center text-sm text-slate-600">
+      <footer className="relative z-10 border-t border-white/5 px-4 py-10 text-center text-sm text-slate-400">
         <div className="flex items-center justify-center gap-2 mb-3">
           <Zap className="w-5 h-5 text-violet-500" />
           <span className="font-bold text-slate-300 text-lg tracking-tight">QuraLabz</span>
         </div>
-        <p className="text-slate-600">© {new Date().getFullYear()} QuraLabz. Free Data Science Education.</p>
+        <p className="text-slate-400">© {new Date().getFullYear()} QuraLabz. Free Data Science Education.</p>
       </footer>
     </div>
   );

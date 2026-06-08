@@ -105,7 +105,7 @@ export default function Footer() {
         <div className="border-t border-white/10 my-8" />
 
         {/* Bottom Footer */}
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 text-sm text-slate-500">
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 text-sm text-slate-400">
           <div className="flex items-center gap-2">
             <p>Made with</p>
             <Heart className="w-4 h-4 text-red-500 fill-red-500" />
@@ -115,14 +115,14 @@ export default function Footer() {
         </div>
 
         {/* Compliance Notice */}
-        <div className="mt-8 pt-8 border-t border-white/10 text-xs text-slate-500 text-center">
+        <div className="mt-8 pt-8 border-t border-white/10 text-xs text-slate-400 text-center">
           <p>
             This site uses cookies for analytics and advertising. By using QuraLabz, you agree to our{" "}
-            <Link href="/privacy-policy" className="text-cyan-400 hover:underline">
+            <Link href="/privacy-policy" className="text-cyan-400 underline hover:text-cyan-300">
               Privacy Policy
             </Link>
             {" "}and{" "}
-            <Link href="/terms" className="text-cyan-400 hover:underline">
+            <Link href="/terms" className="text-cyan-400 underline hover:text-cyan-300">
               Terms & Conditions
             </Link>
             .

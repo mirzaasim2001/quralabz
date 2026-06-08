@@ -56,6 +56,8 @@ export default function Navbar() {
         <button
           className="md:hidden p-2 text-slate-400 hover:text-white"
           onClick={() => setMenuOpen(!menuOpen)}
+          aria-label={menuOpen ? "Close navigation menu" : "Open navigation menu"}
+          aria-expanded={menuOpen}
         >
           {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </button>
