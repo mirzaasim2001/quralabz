@@ -34,11 +34,11 @@ export default function LessonList({ mod }: LessonListProps) {
                 </div>
                 <div>
                   <h3 className="text-white font-semibold">{lesson.title}</h3>
-                  <p className="text-slate-500 text-xs mt-0.5">{lesson.description}</p>
+                  <p className="text-slate-400 text-xs mt-0.5">{lesson.description}</p>
                 </div>
               </div>
               <div className="flex items-center gap-3 flex-shrink-0 ml-4">
-                <span className="text-xs text-slate-500 hidden sm:block">{lesson.duration}</span>
+                <span className="text-xs text-slate-400 hidden sm:block">{lesson.duration}</span>
                 <span className={`px-2 py-0.5 rounded text-xs font-medium
                   ${lesson.difficulty === "Beginner" ? "text-emerald-400 bg-emerald-400/10" :
                     lesson.difficulty === "Intermediate" ? "text-cyan-400 bg-cyan-400/10" :
@@ -57,13 +57,13 @@ export default function LessonList({ mod }: LessonListProps) {
                   className="flex items-center gap-4 px-5 py-3.5 hover:bg-white/5 transition-colors group"
                 >
                   <div className="w-6 h-6 rounded-full border border-white/10 flex items-center
-                    justify-center text-xs text-slate-500 flex-shrink-0 group-hover:border-violet-500/40">
+                    justify-center text-xs text-slate-400 flex-shrink-0 group-hover:border-violet-500/40">
                     {page.pageNumber}
                   </div>
                   <span className="text-sm text-slate-300 group-hover:text-white transition-colors flex-1">
                     {page.title}
                   </span>
-                  <ChevronRight className="w-4 h-4 text-slate-600 group-hover:text-violet-400 transition-colors" />
+                  <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-violet-400 transition-colors" />
                 </Link>
               ))}
             </div>

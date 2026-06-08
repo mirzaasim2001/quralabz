@@ -67,7 +67,7 @@ export default function AllLessonsPage() {
                       <p className="text-slate-400 text-sm mt-0.5">{mod.description}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3 text-xs text-slate-500">
+                  <div className="flex items-center gap-3 text-xs text-slate-400">
                     <span className="flex items-center gap-1">
                       <BookOpen className="w-3.5 h-3.5" />
                       {mod.lessons.length} lessons
@@ -92,7 +92,7 @@ export default function AllLessonsPage() {
                   <div key={lesson.id} className="px-6 py-4 hover:bg-white/[0.02] transition-colors">
                     <div className="flex items-start justify-between gap-4 flex-wrap">
                       <div className="flex items-start gap-3 flex-1 min-w-0">
-                        <span className="text-xs text-slate-600 font-mono mt-1 flex-shrink-0 w-6">
+                        <span className="text-xs text-slate-400 font-mono mt-1 flex-shrink-0 w-6">
                           {lesson.lessonNumber}.
                         </span>
                         <div className="min-w-0">
@@ -102,7 +102,7 @@ export default function AllLessonsPage() {
                           >
                             {lesson.title}
                           </Link>
-                          <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
+                          <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
                             {lesson.description}
                           </p>
                           {/* Page links */}
@@ -127,7 +127,7 @@ export default function AllLessonsPage() {
                         </div>
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
-                        <span className="text-xs text-slate-600">{lesson.duration}</span>
+                        <span className="text-xs text-slate-400">{lesson.duration}</span>
                         <Link
                           href={`/module/${mod.slug}/${lesson.id}/1`}
                           className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold

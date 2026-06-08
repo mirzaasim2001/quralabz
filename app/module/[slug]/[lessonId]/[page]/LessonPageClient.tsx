@@ -84,7 +84,7 @@ export default function LessonPageClient({ mod, lesson, currentPage, params }: P
           <div className="flex items-center gap-2">
             <span className="text-xl">{mod.icon}</span>
             <div>
-              <p className="text-xs text-slate-500 font-medium uppercase tracking-wide">Module</p>
+              <p className="text-xs text-slate-400 font-medium uppercase tracking-wide">Module</p>
               <p className="text-sm font-semibold text-white leading-tight">{mod.title}</p>
             </div>
           </div>
@@ -98,7 +98,7 @@ export default function LessonPageClient({ mod, lesson, currentPage, params }: P
 
         {/* Progress bar */}
         <div className="px-4 py-3 border-b border-white/8 flex-shrink-0">
-          <div className="flex justify-between text-xs text-slate-500 mb-1.5">
+          <div className="flex justify-between text-xs text-slate-400 mb-1.5">
             <span>Progress</span>
             <span className="text-violet-400 font-medium">{progressPct}%</span>
           </div>
@@ -108,7 +108,7 @@ export default function LessonPageClient({ mod, lesson, currentPage, params }: P
               style={{ width: `${progressPct}%` }}
             />
           </div>
-          <p className="text-xs text-slate-600 mt-1.5">
+          <p className="text-xs text-slate-400 mt-1.5">
             {currentFlatIdx + 1} / {allPages.length} pages
           </p>
         </div>
@@ -122,9 +122,9 @@ export default function LessonPageClient({ mod, lesson, currentPage, params }: P
                 {/* Lesson group header */}
                 <div className={`flex items-center gap-2 px-3 py-2 rounded-lg mb-1
                   ${isCurrentLesson ? "bg-violet-600/10" : ""}`}>
-                  <BookOpen className={`w-3.5 h-3.5 flex-shrink-0 ${isCurrentLesson ? "text-violet-400" : "text-slate-600"}`} />
+                  <BookOpen className={`w-3.5 h-3.5 flex-shrink-0 ${isCurrentLesson ? "text-violet-400" : "text-slate-400"}`} />
                   <span className={`text-xs font-semibold uppercase tracking-wide
-                    ${isCurrentLesson ? "text-violet-400" : "text-slate-600"}`}>
+                    ${isCurrentLesson ? "text-violet-400" : "text-slate-400"}`}>
                     Lesson {l.lessonNumber}: {l.title}
                   </span>
                 </div>
@@ -154,7 +154,7 @@ export default function LessonPageClient({ mod, lesson, currentPage, params }: P
                       ) : isActive ? (
                         <div className="w-4 h-4 rounded-full bg-violet-500 flex-shrink-0 shadow-[0_0_8px_rgba(139,92,246,0.6)]" />
                       ) : (
-                        <Circle className="w-4 h-4 text-slate-600 flex-shrink-0" />
+                        <Circle className="w-4 h-4 text-slate-400 flex-shrink-0" />
                       )}
                       <span
                         className={`text-xs leading-tight ${
@@ -162,7 +162,7 @@ export default function LessonPageClient({ mod, lesson, currentPage, params }: P
                             ? "text-white font-semibold"
                             : isBefore
                             ? "text-slate-400"
-                            : "text-slate-500"
+                            : "text-slate-400"
                         }`}
                       >
                         {pg.title}
@@ -179,7 +179,7 @@ export default function LessonPageClient({ mod, lesson, currentPage, params }: P
         <div className="p-4 border-t border-white/8 flex-shrink-0">
           <Link
             href={`/module/${params.slug}`}
-            className="flex items-center gap-2 text-xs text-slate-500 hover:text-white transition-colors"
+            className="flex items-center gap-2 text-xs text-slate-400 hover:text-white transition-colors"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             Back to Module Overview
@@ -202,7 +202,7 @@ export default function LessonPageClient({ mod, lesson, currentPage, params }: P
             </button>
 
             {/* Breadcrumb */}
-            <nav className="flex items-center gap-1 text-xs text-slate-500">
+            <nav className="flex items-center gap-1 text-xs text-slate-400">
               <Link href="/" className="hover:text-white transition-colors">
                 <Home className="w-3.5 h-3.5" />
               </Link>
@@ -218,7 +218,7 @@ export default function LessonPageClient({ mod, lesson, currentPage, params }: P
           </div>
 
           {/* Page indicator */}
-          <div className="flex items-center gap-1 text-xs text-slate-500 flex-shrink-0">
+          <div className="flex items-center gap-1 text-xs text-slate-400 flex-shrink-0">
             <span className="hidden sm:inline">Page</span>
             <span className="text-white font-semibold">{currentFlatIdx + 1}</span>
             <span>/</span>

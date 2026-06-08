@@ -77,10 +77,10 @@ export default function ModulePage({ params }: Props) {
                     "bg-violet-500/20 text-violet-300 border border-violet-500/20"}`}>
                   {mod.level}
                 </span>
-                <span className="text-xs text-slate-500 flex items-center gap-1">
+                <span className="text-xs text-slate-400 flex items-center gap-1">
                   <Clock className="w-3.5 h-3.5" /> {mod.totalDuration}
                 </span>
-                <span className="text-xs text-slate-500 flex items-center gap-1">
+                <span className="text-xs text-slate-400 flex items-center gap-1">
                   <BookOpen className="w-3.5 h-3.5" /> {mod.lessons.length} lessons · {totalPages} pages
                 </span>
               </div>
@@ -168,7 +168,7 @@ export default function ModulePage({ params }: Props) {
                 { label: "Prerequisites", value: mod.id === "python-basics" ? "None" : "Python Basics" },
               ].map((item) => (
                 <div key={item.label} className="flex justify-between text-sm">
-                  <span className="text-slate-500">{item.label}</span>
+                  <span className="text-slate-400">{item.label}</span>
                   <span className="text-slate-200 font-medium">{item.value}</span>
                 </div>
               ))}
