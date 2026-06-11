@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
+/* Fonts are self-hosted via next/font (see app/layout.tsx) — no render-blocking @import */
 
 @tailwind base;
 @tailwind components;
@@ -21,10 +21,12 @@
 html,
 body {
   max-width: 100vw;
-  overflow-x: hidden;
+  /* clip (not hidden): hidden can turn body into a scroll container and
+     break position:sticky descendants */
+  overflow-x: clip;
   background: var(--bg);
   color: #f1f5f9;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-inter), sans-serif;
   scroll-behavior: smooth;
 }
 
@@ -138,4 +140,60 @@ body {
 .progress-bar-inner {
   background: linear-gradient(90deg, #8b5cf6, #06b6d4);
   transition: width 0.4s ease;
+}
+
+/* ── Cinematic grain texture overlay ───────────────────── */
+.noise-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.035;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+}
+
+/* ── Faint animated grid backdrop ──────────────────────── */
+.bg-grid {
+  background-image:
+    linear-gradient(rgba(139, 92, 246, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(139, 92, 246, 0.08) 1px, transparent 1px);
+  background-size: 60px 60px;
+}
+
+/* ── Animated gradient border for the code playground ───── */
+.code-frame-glow {
+  position: relative;
+}
+.code-frame-glow::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  padding: 1px;
+  border-radius: inherit;
+  background: linear-gradient(120deg, rgba(139, 92, 246, 0.65), rgba(6, 182, 212, 0.45), rgba(139, 92, 246, 0.65));
+  background-size: 200% 200%;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  animation: codeFrameFlow 8s ease infinite;
+}
+@keyframes codeFrameFlow {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* ── Reduced motion: calm everything down ──────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

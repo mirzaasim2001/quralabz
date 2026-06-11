@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { modules } from "@/data/lessons";
 import { BookOpen, ChevronRight, Clock, ArrowRight } from "lucide-react";
+import Reveal from "@/components/motion/Reveal";
+import AnimatedCounter from "@/components/motion/AnimatedCounter";
+import ModuleIcon from "@/components/ModuleIcon";
 
 export const metadata: Metadata = {
   title: "All Lessons — Complete Data Science Curriculum | QuraLabz",
@@ -27,10 +30,11 @@ export default function AllLessonsPage() {
   );
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] px-4 sm:px-6 py-16">
+    <div className="min-h-screen relative px-4 sm:px-6 py-16">
       <div className="max-w-5xl mx-auto">
 
         {/* Header */}
+        <Reveal>
         <div className="mb-12 text-center">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-300 text-sm font-medium mb-6">
             <BookOpen className="w-4 h-4" />
@@ -40,23 +44,26 @@ export default function AllLessonsPage() {
             All Lessons
           </h1>
           <p className="text-slate-400 text-lg max-w-2xl mx-auto">
-            {totalLessons} lessons · {totalPages} interactive pages across {modules.length} modules.
+            <AnimatedCounter value={totalLessons} className="text-white font-semibold" /> lessons ·{" "}
+            <AnimatedCounter value={totalPages} className="text-white font-semibold" /> interactive pages across{" "}
+            <AnimatedCounter value={modules.length} className="text-white font-semibold" /> modules.
             Everything is free — no account required.
           </p>
         </div>
+        </Reveal>
 
         {/* Module + Lesson Directory */}
         <div className="space-y-10">
-          {modules.map((mod) => (
+          {modules.map((mod, idx) => (
+            <Reveal key={mod.id} delay={(idx % 3) * 0.1}>
             <div
-              key={mod.id}
               className="rounded-3xl bg-[#0d0d14] border border-white/8 overflow-hidden"
             >
               {/* Module Header */}
               <div className={`px-6 py-5 bg-gradient-to-r ${mod.color} bg-opacity-10 border-b border-white/8`}>
                 <div className="flex items-center justify-between flex-wrap gap-3">
                   <div className="flex items-center gap-3">
-                    <span className="text-3xl">{mod.icon}</span>
+                    <ModuleIcon slug={mod.slug} size="w-11 h-11" iconSize="w-5 h-5" className="flex-shrink-0" />
                     <div>
                       <Link
                         href={`/module/${mod.slug}`}
@@ -154,10 +161,12 @@ export default function AllLessonsPage() {
                 </Link>
               </div>
             </div>
+            </Reveal>
           ))}
         </div>
 
         {/* Bottom CTA */}
+        <Reveal>
         <div className="mt-16 text-center">
           <p className="text-slate-400 mb-6">
             All lessons are free. No account needed. Run Python directly in your browser.
@@ -172,6 +181,7 @@ export default function AllLessonsPage() {
             <ArrowRight className="w-5 h-5" />
           </Link>
         </div>
+        </Reveal>
       </div>
     </div>
   );

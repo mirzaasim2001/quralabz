@@ -1,9 +1,28 @@
 import type { Metadata } from "next";
-import Script from "next/script";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+import AdSenseLoader from "@/components/AdSenseLoader";
+
+const inter = Inter({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700", "800", "900"],
+  variable: "--font-inter",
+  display: "swap",
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  variable: "--font-jetbrains-mono",
+  display: "swap",
+});
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import AuroraBackground from "@/components/effects/AuroraBackground";
+import GrainOverlay from "@/components/effects/GrainOverlay";
+import CursorGlow from "@/components/effects/CursorGlow";
+import ScrollProgressBar from "@/components/effects/ScrollProgressBar";
 
 export const metadata: Metadata = {
   title: "QuraLabz — Interactive Data Science",
@@ -23,11 +42,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className={`dark ${inter.variable} ${jetbrainsMono.variable}`}>
       <head>
-        <link rel="icon" href="/favicon.png" type="image/png" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link rel="icon" href="/favicon-48.png" type="image/png" sizes="48x48" />
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -105,10 +122,16 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="bg-[#0a0a0f] text-white antialiased flex flex-col min-h-screen">
+      {/* relative: framer-motion useScroll(target) needs a positioned ancestor
+          chain to compute scroll offsets (silences its console warning) */}
+      <body className="relative bg-[#0a0a0f] text-white antialiased flex flex-col min-h-screen">
+        <AuroraBackground />
+        <GrainOverlay />
+        <CursorGlow />
+        <ScrollProgressBar />
         <ErrorBoundary>
           <Navbar />
-          <main className="pt-16 flex-grow">{children}</main>
+          <main className="relative z-10 pt-16 flex-grow">{children}</main>
           <Footer />
 
           {/* ═══════════════════════════════════════════════════════
@@ -129,12 +152,11 @@ export default function RootLayout({
             {/* INSERT MOBILE ADSENSE TAG HERE */}
           </div>
         </ErrorBoundary>
+
+        {/* AdSense loader — injected on browser idle (off the critical path).
+            AdBanner polls window.adsbygoogle, so deferred loading is safe. */}
+        <AdSenseLoader />
       </body>
-      <script
-        async
-        src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8931192509547294"
-        crossOrigin="anonymous"
-      ></script>
     </html>
   );
 }

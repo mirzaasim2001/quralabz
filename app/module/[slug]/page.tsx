@@ -1,9 +1,10 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
 import { getModuleBySlug } from "@/data/lessons";
-import { BookOpen, Clock, ChevronRight, ArrowLeft, Play, CheckCircle2, Lock } from "lucide-react";
+import { ChevronRight, CheckCircle2, Lock } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import LessonList from "./LessonList";
+import ModuleHero from "./ModuleHero";
+import Reveal from "@/components/motion/Reveal";
 import dynamic from "next/dynamic";
 const AdBanner = dynamic(() => import("@/components/AdBanner"), { ssr: false });
 
@@ -35,7 +36,7 @@ export default function ModulePage({ params }: Props) {
   const totalPages = mod.lessons.reduce((acc, l) => acc + l.pages.length, 0);
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f]">
+    <div className="min-h-screen relative">
 
       {/* ═══════════════════════════════════════════════════════
           ADSENSE PLACEMENT: Module Hero Banner (below nav)
@@ -49,66 +50,14 @@ export default function ModulePage({ params }: Props) {
       </div>
 
       {/* ── Module Hero ───────────────────────────────────── */}
-      <div className="relative overflow-hidden">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={mod.heroImage}
-          alt={mod.title}
-          className="absolute inset-0 w-full h-full object-cover opacity-20"
-        />
-        <div className={`absolute inset-0 bg-gradient-to-br ${mod.color} opacity-30`} />
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#0a0a0f]" />
-
-        <div className="relative max-w-5xl mx-auto px-4 sm:px-6 py-16">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-1.5 text-sm text-slate-400 hover:text-white mb-8 transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" /> Back to Modules
-          </Link>
-
-          <div className="flex items-start gap-6">
-            <div className="text-6xl hidden sm:block">{mod.icon}</div>
-            <div>
-              <div className="flex items-center gap-3 mb-3">
-                <span className={`px-2.5 py-1 rounded-full text-xs font-semibold
-                  ${mod.level === "Beginner" ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/20" :
-                    mod.level === "Intermediate" ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/20" :
-                    "bg-violet-500/20 text-violet-300 border border-violet-500/20"}`}>
-                  {mod.level}
-                </span>
-                <span className="text-xs text-slate-400 flex items-center gap-1">
-                  <Clock className="w-3.5 h-3.5" /> {mod.totalDuration}
-                </span>
-                <span className="text-xs text-slate-400 flex items-center gap-1">
-                  <BookOpen className="w-3.5 h-3.5" /> {mod.lessons.length} lessons · {totalPages} pages
-                </span>
-              </div>
-              <h1 className="text-4xl sm:text-5xl font-black text-white mb-4 leading-tight">
-                {mod.title}
-              </h1>
-              <p className="text-lg text-slate-400 max-w-2xl leading-relaxed">
-                {mod.description}
-              </p>
-
-              <Link
-                href={`/module/${mod.slug}/${mod.lessons[0].id}/1`}
-                className="mt-8 inline-flex items-center gap-2 px-7 py-3.5 rounded-xl text-base font-bold
-                  bg-violet-600 hover:bg-violet-500 text-white transition-all duration-150 shadow-lg glow-violet"
-              >
-                <Play className="w-5 h-5 fill-white" />
-                Start Module
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
+      <ModuleHero mod={mod} totalPages={totalPages} />
 
       {/* ── Curriculum ────────────────────────────────────── */}
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-12">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-10">
         {/* Module Introduction */}
         {mod.introduction && (
-          <div className="mb-16 pb-12 border-b border-white/10">
+          <Reveal>
+          <div className="mb-10 pb-8 border-b border-white/10">
             <div className="prose prose-invert max-w-none">
               <ReactMarkdown
                 components={{
@@ -132,13 +81,16 @@ export default function ModulePage({ params }: Props) {
               </ReactMarkdown>
             </div>
           </div>
+          </Reveal>
         )}
 
         <div className="flex gap-8">
 
           {/* Lesson list */}
           <div className="flex-1">
-            <h2 className="text-2xl font-bold text-white mb-6">Curriculum</h2>
+            <Reveal>
+              <h2 className="text-2xl font-bold text-white mb-6">Curriculum</h2>
+            </Reveal>
             <LessonList mod={mod} />
           </div>
 
@@ -148,6 +100,7 @@ export default function ModulePage({ params }: Props) {
               Position: Right sidebar on the module overview page.
           ═══════════════════════════════════════════════════════ */}
           <aside className="hidden lg:block w-72 flex-shrink-0">
+            <Reveal delay={0.1}>
             <div
               id={`adsense-module-${mod.slug}-sidebar`}
               aria-label="Advertisement"
@@ -173,6 +126,7 @@ export default function ModulePage({ params }: Props) {
                 </div>
               ))}
             </div>
+            </Reveal>
           </aside>
         </div>
       </div>
