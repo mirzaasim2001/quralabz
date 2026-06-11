@@ -127,6 +127,7 @@ export default function LessonPageClient({ mod, lesson, currentPage, params }: P
           <button
             className="md:hidden p-1.5 text-slate-400 hover:text-white"
             onClick={() => setSidebarOpen(false)}
+            aria-label="Close navigation sidebar"
           >
             <X className="w-4 h-4" />
           </button>
@@ -240,13 +241,14 @@ export default function LessonPageClient({ mod, lesson, currentPage, params }: P
             <button
               className="md:hidden p-1.5 text-slate-400 hover:text-white"
               onClick={() => setSidebarOpen(true)}
+              aria-label="Open navigation sidebar"
             >
               <Menu className="w-5 h-5" />
             </button>
 
             {/* Breadcrumb */}
             <nav className="flex items-center gap-1 text-xs text-slate-400">
-              <Link href="/" className="hover:text-white transition-colors">
+              <Link href="/" className="hover:text-white transition-colors" aria-label="Home">
                 <Home className="w-3.5 h-3.5" />
               </Link>
               <ChevronRight className="w-3 h-3" />
@@ -336,7 +338,7 @@ export default function LessonPageClient({ mod, lesson, currentPage, params }: P
                 >
                   {/* Lesson / page heading */}
                   <div className="mb-6">
-                    <div className="flex items-center gap-2 text-xs text-violet-400 font-semibold uppercase tracking-wide mb-2">
+                    <div className="flex items-center gap-2 text-xs text-violet-300 font-semibold uppercase tracking-wide mb-2">
                       <BookOpen className="w-3.5 h-3.5" />
                       {lesson.title} · Page {pageNumber} of {lesson.pages.length}
                     </div>
@@ -344,13 +346,13 @@ export default function LessonPageClient({ mod, lesson, currentPage, params }: P
                       {currentPage.title}
                     </h1>
                     <div className="mt-3 flex items-center gap-2">
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-[11px] font-medium text-slate-400">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-[11px] font-medium text-slate-300">
                         <Clock className="w-3 h-3" /> {lesson.duration}
                       </span>
                       <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-[11px] font-medium
-                        ${lesson.difficulty === "Beginner" ? "text-emerald-400 bg-emerald-400/10 border-emerald-400/20" :
-                          lesson.difficulty === "Intermediate" ? "text-cyan-400 bg-cyan-400/10 border-cyan-400/20" :
-                          "text-violet-400 bg-violet-400/10 border-violet-400/20"}`}>
+                        ${lesson.difficulty === "Beginner" ? "text-emerald-300 bg-emerald-400/10 border-emerald-400/20" :
+                          lesson.difficulty === "Intermediate" ? "text-cyan-300 bg-cyan-400/10 border-cyan-400/20" :
+                          "text-violet-300 bg-violet-400/10 border-violet-400/20"}`}>
                         <BarChart3 className="w-3 h-3" /> {lesson.difficulty}
                       </span>
                     </div>
@@ -391,20 +393,23 @@ export default function LessonPageClient({ mod, lesson, currentPage, params }: P
               )}
 
               {/* Page dots */}
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-0.5">
                 {lesson.pages.map((pg) => (
                   <button
                     key={pg.pageNumber}
                     onClick={() =>
                       navigate({ lessonId: lesson.id, lessonTitle: lesson.title, page: pg })
                     }
-                    className={`rounded-full transition-all duration-200 ${
+                    aria-label={pg.title}
+                    title={pg.title}
+                    className="flex items-center justify-center min-w-[24px] min-h-[24px]"
+                  >
+                    <span className={`rounded-full transition-all duration-200 block ${
                       pg.pageNumber === pageNumber
                         ? "w-6 h-2.5 bg-violet-500"
                         : "w-2.5 h-2.5 bg-white/15 hover:bg-white/30"
-                    }`}
-                    title={pg.title}
-                  />
+                    }`} />
+                  </button>
                 ))}
               </div>
 
