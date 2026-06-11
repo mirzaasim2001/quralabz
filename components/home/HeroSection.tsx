@@ -116,7 +116,7 @@ export default function HeroSection({ moduleCount, lessonCount }: HeroSectionPro
                 <AnimatedCounter value={moduleCount} className="text-white font-semibold" /> Modules ·{" "}
                 <AnimatedCounter value={lessonCount} className="text-white font-semibold" /> Lessons
               </span>
-              <span className="flex items-center gap-2 bg-white/5 px-4 py-2 rounded-full border border-white/5">
+              <span className="flex items-center gap-2 bg-white/5 px-4 py-2 rounded-full border border-white/5 text-slate-200">
                 <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
                 4.9 / 5 satisfaction
               </span>

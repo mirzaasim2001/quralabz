@@ -171,20 +171,20 @@ export default function CodeExperienceSection() {
             return (
               <motion.div
                 key={s.title}
-                animate={{ opacity: isActive ? 1 : 0.35, x: isActive ? 0 : 12 }}
+                animate={{ opacity: isActive ? 1 : 0.55, x: isActive ? 0 : 12 }}
                 transition={{ duration: 0.4 }}
                 className="flex gap-5"
               >
                 <div
                   className={`flex-shrink-0 w-12 h-12 rounded-2xl border flex items-center justify-center transition-all duration-300
-                    ${isActive ? "bg-violet-500/15 border-violet-500/40 text-violet-300 shadow-glow" : "bg-white/5 border-white/10 text-slate-500"}`}
+                    ${isActive ? "bg-violet-500/15 border-violet-500/40 text-violet-300 shadow-glow" : "bg-white/5 border-white/10 text-slate-400"}`}
                 >
                   <Icon className="w-5 h-5" />
                 </div>
                 <div>
-                  <div className="text-xs font-mono text-slate-500 mb-1">0{i + 1}</div>
+                  <div className="text-xs font-mono text-slate-400 mb-1">0{i + 1}</div>
                   <h3 className="text-xl sm:text-2xl font-bold text-white mb-3">{s.title}</h3>
-                  <p className="text-slate-400 leading-relaxed max-w-md">{s.body}</p>
+                  <p className="text-slate-300 leading-relaxed max-w-md">{s.body}</p>
                 </div>
               </motion.div>
             );
