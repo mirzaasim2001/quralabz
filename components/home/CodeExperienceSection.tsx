@@ -182,7 +182,7 @@ export default function CodeExperienceSection() {
                   <Icon className="w-5 h-5" />
                 </div>
                 <div>
-                  <div className="text-xs font-mono text-slate-400 mb-1">0{i + 1}</div>
+                  <div className="text-xs font-mono text-slate-300 mb-1">0{i + 1}</div>
                   <h3 className="text-xl sm:text-2xl font-bold text-white mb-3">{s.title}</h3>
                   <p className="text-slate-300 leading-relaxed max-w-md">{s.body}</p>
                 </div>
