@@ -1,3 +1,12 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Terms & Conditions | QuraLabz",
+  description:
+    "The terms and conditions governing your use of the QuraLabz interactive data science learning platform.",
+  alternates: { canonical: "/terms" },
+};
+
 export default function TermsPage() {
   return (
     <div className="min-h-screen bg-[#0a0a0f] px-4 sm:px-6 py-24">

@@ -1,8 +1,13 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import dynamic from "next/dynamic";
 import { ArrowRight, Code2, BookOpen, BarChart3, ChevronRight } from "lucide-react";
 import { modules } from "@/data/lessons";
+
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+};
 import ModuleIcon from "@/components/ModuleIcon";
 import ParticleNetwork from "@/components/ParticleNetwork";
 import ParallaxOrbs from "@/components/effects/ParallaxOrbs";

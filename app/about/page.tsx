@@ -1,7 +1,14 @@
-
+import type { Metadata } from "next";
 import { Sparkles, Code2, BookOpen, Rocket, Target, Users, Lightbulb, Award } from "lucide-react";
 import dynamic from "next/dynamic";
 const ModuleLessonSearch = dynamic(() => import("../../components/ModuleLessonSearch"), { ssr: false });
+
+export const metadata: Metadata = {
+  title: "About QuraLabz — Interactive Data Science Education",
+  description:
+    "QuraLabz is a free, interactive platform for learning Python, data science, and machine learning directly in your browser. No sign-up, no setup.",
+  alternates: { canonical: "/about" },
+};
 
 export default function AboutPage() {
   return (

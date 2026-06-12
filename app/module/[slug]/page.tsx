@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getModuleBySlug } from "@/data/lessons";
 import { ChevronRight, CheckCircle2, Lock } from "lucide-react";
@@ -27,6 +28,24 @@ export function generateStaticParams() {
     { slug: "sliding-window-algorithms" },
     // Add more slugs here as you add modules
   ];
+}
+
+export function generateMetadata({ params }: Props): Metadata {
+  const mod = getModuleBySlug(params.slug);
+  if (!mod) return { title: "Module Not Found | QuraLabz" };
+
+  return {
+    title: `${mod.title} — Interactive Lessons | QuraLabz`,
+    description: mod.introduction
+      ? mod.introduction.slice(0, 155)
+      : `Learn ${mod.title} through free, interactive, browser-based lessons on QuraLabz.`,
+    alternates: { canonical: `/module/${mod.slug}` },
+    openGraph: {
+      title: `${mod.title} | QuraLabz`,
+      description: `Interactive ${mod.title} lessons — code in your browser, no setup.`,
+      type: "website",
+    },
+  };
 }
 
 export default function ModulePage({ params }: Props) {

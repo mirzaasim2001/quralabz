@@ -25,6 +25,8 @@ import CursorGlow from "@/components/effects/CursorGlow";
 import ScrollProgressBar from "@/components/effects/ScrollProgressBar";
 
 export const metadata: Metadata = {
+  // Base URL for resolving all relative canonical / OG URLs to the www apex.
+  metadataBase: new URL("https://www.quralabz.com"),
   title: "QuraLabz — Interactive Data Science",
   description:
     "Learn Python, Pandas, and Data Visualization interactively in your browser. Free, no sign-up required.",

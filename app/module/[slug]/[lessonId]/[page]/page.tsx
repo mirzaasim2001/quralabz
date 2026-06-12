@@ -49,6 +49,9 @@ export function generateMetadata({ params }: Props): Metadata {
       "learn python online",
       "free data science course",
     ],
+    alternates: {
+      canonical: `/module/${params.slug}/${params.lessonId}/${params.page}`,
+    },
     openGraph: {
       title: `${pageTitle} | QuraLabz`,
       description: lesson.description,

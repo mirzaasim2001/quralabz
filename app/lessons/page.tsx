@@ -20,6 +20,7 @@ export const metadata: Metadata = {
     "free data science course",
     "interactive python",
   ],
+  alternates: { canonical: "/lessons" },
 };
 
 export default function AllLessonsPage() {

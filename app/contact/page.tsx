@@ -1,4 +1,12 @@
+import type { Metadata } from "next";
 import { Mail, Phone, MessageCircle, Calendar, Lightbulb, User, Briefcase, Code, Award } from "lucide-react";
+
+export const metadata: Metadata = {
+  title: "Contact QuraLabz",
+  description:
+    "Get in touch with the QuraLabz team for questions, feedback, or partnership inquiries about our interactive data science platform.",
+  alternates: { canonical: "/contact" },
+};
 
 export default function ContactPage() {
   return (

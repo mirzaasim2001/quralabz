@@ -1,3 +1,12 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Privacy Policy | QuraLabz",
+  description:
+    "How QuraLabz collects, uses, and protects your information, including cookies, analytics, and advertising disclosures.",
+  alternates: { canonical: "/privacy-policy" },
+};
+
 export default function PrivacyPolicyPage() {
   return (
     <div className="min-h-screen bg-[#0a0a0f] px-4 sm:px-6 py-24">
