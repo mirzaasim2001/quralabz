@@ -4,12 +4,7 @@ import Image from "next/image";
 import dynamic from "next/dynamic";
 import { ArrowRight, Code2, BookOpen, BarChart3, ChevronRight } from "lucide-react";
 import { modules } from "@/data/lessons";
-
-export const metadata: Metadata = {
-  alternates: { canonical: "/" },
-};
 import ModuleIcon from "@/components/ModuleIcon";
-import ParticleNetwork from "@/components/ParticleNetwork";
 import ParallaxOrbs from "@/components/effects/ParallaxOrbs";
 import Reveal from "@/components/motion/Reveal";
 import TiltCard from "@/components/motion/TiltCard";
@@ -19,6 +14,11 @@ import LessonStoryScroll from "@/components/home/LessonStoryScroll";
 import CodeExperienceSection from "@/components/home/CodeExperienceSection";
 import CurriculumTimeline from "@/components/home/CurriculumTimeline";
 
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+};
+
+const ParticleNetworkWrapper = dynamic(() => import("@/components/effects/ParticleNetworkWrapper"), { ssr: false });
 const ModuleLessonSearch = dynamic(() => import("@/components/ModuleLessonSearch"), { ssr: false });
 const AdBanner = dynamic(() => import("@/components/AdBanner"), { ssr: false });
 
@@ -42,7 +42,7 @@ export default function HomePage() {
     <div className="min-h-screen overflow-x-clip relative">
       {/* ── Interactive Data Network Background ────────── */}
       <div className="pointer-events-none fixed inset-0 z-0 opacity-60">
-        <ParticleNetwork />
+        <ParticleNetworkWrapper />
       </div>
 
       {/* ── Floating Orbs (scroll parallax) ─────────────── */}

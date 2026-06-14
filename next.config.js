@@ -15,6 +15,10 @@ const securityHeaders = [
 ];
 
 const nextConfig = {
+  experimental: {
+    optimizePackageImports: ["framer-motion", "lucide-react"],
+  },
+
   images: {
     remotePatterns: [
       {

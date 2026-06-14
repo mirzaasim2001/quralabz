@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState, useEffect } from "react";
 import {
   motion,
   useScroll,
@@ -25,7 +25,20 @@ function wrap(min: number, max: number, v: number) {
  */
 export default function ScrollMarquee({ baseVelocity = -1.2 }: { baseVelocity?: number }) {
   const prefersReducedMotion = useReducedMotion();
+  const sectionRef = useRef<HTMLDivElement>(null);
+  const [inView, setInView] = useState(false);
   const baseX = useMotionValue(0);
+
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setInView(entry.isIntersecting),
+      { rootMargin: "100px" }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
   const { scrollY } = useScroll();
   const scrollVelocity = useVelocity(scrollY);
   const smoothVelocity = useSpring(scrollVelocity, { damping: 50, stiffness: 400 });
@@ -37,7 +50,7 @@ export default function ScrollMarquee({ baseVelocity = -1.2 }: { baseVelocity?: 
   const x = useTransform(baseX, (v) => `${wrap(-25, 0, v)}%`);
 
   useAnimationFrame((_, delta) => {
-    if (prefersReducedMotion) return;
+    if (prefersReducedMotion || !inView) return;
     let moveBy = directionRef.current * baseVelocity * (delta / 1000);
     const vf = velocityFactor.get();
     if (vf < 0) directionRef.current = -1;
@@ -48,6 +61,7 @@ export default function ScrollMarquee({ baseVelocity = -1.2 }: { baseVelocity?: 
 
   return (
     <div
+      ref={sectionRef}
       aria-hidden="true"
       className="relative z-10 py-4 sm:py-6 overflow-hidden select-none"
     >

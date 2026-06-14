@@ -16,6 +16,7 @@ export default function CursorGlow() {
 
   useEffect(() => {
     if (prefersReducedMotion) return;
+    if (window.matchMedia("(pointer: coarse)").matches) return;
     const handleMove = (e: MouseEvent) => {
       x.set(e.clientX);
       y.set(e.clientY);
