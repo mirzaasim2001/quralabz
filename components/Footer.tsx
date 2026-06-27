@@ -48,6 +48,11 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
+                <Link href="/arcade" className="hover:text-cyan-400 transition-colors">
+                  Code Arcade
+                </Link>
+              </li>
+              <li>
                 <Link href="/certificate" className="hover:text-cyan-400 transition-colors">
                   Get a Certificate
                 </Link>
