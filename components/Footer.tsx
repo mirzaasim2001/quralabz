@@ -48,6 +48,11 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
+                <Link href="/certificate" className="hover:text-cyan-400 transition-colors">
+                  Get a Certificate
+                </Link>
+              </li>
+              <li>
                 <Link href="/about" className="hover:text-cyan-400 transition-colors">
                   About Us
                 </Link>
