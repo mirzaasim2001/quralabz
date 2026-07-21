@@ -113,24 +113,10 @@ export default function ModulePage({ params }: Props) {
             <LessonList mod={mod} />
           </div>
 
-          {/* ═══════════════════════════════════════════════════════
-              ADSENSE PLACEMENT: Module Sidebar
-              Size: 300×250 medium rectangle (desktop only)
-              Position: Right sidebar on the module overview page.
-          ═══════════════════════════════════════════════════════ */}
           <aside className="hidden lg:block w-72 flex-shrink-0">
             <Reveal delay={0.1}>
-            <div
-              id={`adsense-module-${mod.slug}-sidebar`}
-              aria-label="Advertisement"
-              className="glass rounded-xl flex items-center justify-center"
-              style={{ minHeight: "250px", width: "300px" }}
-            >
-              {/* INSERT 300×250 ADSENSE TAG HERE */}
-            </div>
-
             {/* Module stats */}
-            <div className="glass rounded-xl p-5 mt-4 space-y-4">
+            <div className="glass rounded-xl p-5 space-y-4">
               <h4 className="text-white font-semibold text-sm">Module Details</h4>
               {[
                 { label: "Level", value: mod.level },
@@ -150,18 +136,6 @@ export default function ModulePage({ params }: Props) {
         </div>
       </div>
 
-      {/* ═══════════════════════════════════════════════════════
-          ADSENSE PLACEMENT: Module Page Footer Banner
-          Size: 728×90 or 970×90
-      ═══════════════════════════════════════════════════════ */}
-      <div
-        id={`adsense-module-${mod.slug}-footer`}
-        aria-label="Advertisement"
-        className="w-full flex justify-center py-4"
-        style={{ minHeight: "90px" }}
-      >
-        {/* INSERT FOOTER ADSENSE TAG HERE */}
-      </div>
     </div>
   );
 }

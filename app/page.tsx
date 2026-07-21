@@ -54,7 +54,7 @@ export default function HomePage() {
         <div
           role="region"
           aria-label="Advertisement"
-          className="w-full min-h-[90px] bg-[#0d0d14]/80 backdrop-blur-sm border-b border-white/5"
+          className="w-full"
         >
           <AdBanner />
         </div>
@@ -78,7 +78,7 @@ export default function HomePage() {
       <CodeExperienceSection />
 
       {/* ═══ ADSENSE: After lesson showcase (728×90) ═══ */}
-      <div role="region" aria-label="Advertisement" className="w-full min-h-[90px] py-2 relative z-10">
+      <div role="region" aria-label="Advertisement" className="w-full relative z-10">
         <AdBanner />
       </div>
 
@@ -86,7 +86,7 @@ export default function HomePage() {
       <CurriculumTimeline modules={timelineModules} />
 
       {/* ═══ ADSENSE: Between modules (728×90) ═══ */}
-      <div role="region" aria-label="Advertisement" className="w-full min-h-[90px] py-2 relative z-10">
+      <div role="region" aria-label="Advertisement" className="w-full relative z-10">
         <AdBanner />
       </div>
 
@@ -284,6 +284,18 @@ export default function HomePage() {
               </Reveal>
             ))}
           </div>
+
+          <Reveal>
+            <div className="text-center mt-10">
+              <Link
+                href="/guides"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-semibold text-slate-200 bg-white/5 border border-white/15 hover:bg-white/10 hover:text-white transition-all"
+              >
+                Browse all in-depth guides
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+          </Reveal>
         </div>
       </section>
 
@@ -291,7 +303,7 @@ export default function HomePage() {
       <div
         role="region"
         aria-label="Advertisement"
-        className="w-full py-6 bg-[#0a0a0f] relative z-10"
+        className="w-full bg-[#0a0a0f] relative z-10"
       >
         <AdBanner />
       </div>

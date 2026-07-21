@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { modules } from "@/data/lessons";
+import { guides } from "@/app/guides/guides";
 
 const BASE_URL = "https://www.quralabz.com";
 
@@ -14,7 +15,16 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${BASE_URL}/privacy-policy`,      changeFrequency: "yearly",  priority: 0.5, lastModified: now },
     { url: `${BASE_URL}/terms`,               changeFrequency: "yearly",  priority: 0.5, lastModified: now },
     { url: `${BASE_URL}/lessons`,             changeFrequency: "weekly",  priority: 0.9, lastModified: now },
+    { url: `${BASE_URL}/guides`,              changeFrequency: "weekly",  priority: 0.9, lastModified: now },
   ];
+
+  // ── Guide articles ────────────────────────────────────────
+  const guidePages: MetadataRoute.Sitemap = guides.map((g) => ({
+    url: `${BASE_URL}/guides/${g.slug}`,
+    changeFrequency: "monthly",
+    priority: 0.8,
+    lastModified: new Date(g.published),
+  }));
 
   // ── Module overview pages ─────────────────────────────────
   const modulePages: MetadataRoute.Sitemap = modules.map((mod) => ({
@@ -37,5 +47,5 @@ export default function sitemap(): MetadataRoute.Sitemap {
     )
   );
 
-  return [...staticPages, ...modulePages, ...lessonPages];
+  return [...staticPages, ...guidePages, ...modulePages, ...lessonPages];
 }

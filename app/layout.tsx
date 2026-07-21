@@ -135,24 +135,6 @@ export default function RootLayout({
           <Navbar />
           <main className="relative z-10 pt-16 flex-grow">{children}</main>
           <Footer />
-
-          {/* ═══════════════════════════════════════════════════════
-              ADSENSE PLACEMENT: Bottom Sticky Banner
-              Replace this div with your AdSense <ins> tag.
-              Dimensions: 728×90 (leaderboard) on desktop,
-                          320×50 (mobile banner) on mobile.
-          ═══════════════════════════════════════════════════════ */}
-          <div
-            id="adsense-bottom-sticky"
-            role="region"
-            aria-label="Advertisement"
-            className="fixed bottom-0 left-0 right-0 z-40 flex justify-center
-              bg-[#0a0a0f]/80 backdrop-blur-md border-t border-white/8 py-1
-              md:hidden"
-            style={{ minHeight: "52px" }}
-          >
-            {/* INSERT MOBILE ADSENSE TAG HERE */}
-          </div>
         </ErrorBoundary>
 
         {/* AdSense loader — injected on browser idle (off the critical path).
