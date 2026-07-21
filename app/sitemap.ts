@@ -14,9 +14,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${BASE_URL}/privacy-policy`,      changeFrequency: "yearly",  priority: 0.5, lastModified: now },
     { url: `${BASE_URL}/terms`,               changeFrequency: "yearly",  priority: 0.5, lastModified: now },
     { url: `${BASE_URL}/lessons`,             changeFrequency: "weekly",  priority: 0.9, lastModified: now },
-    { url: `${BASE_URL}/pricing`,             changeFrequency: "monthly", priority: 0.8, lastModified: now },
-    { url: `${BASE_URL}/certificate`,         changeFrequency: "monthly", priority: 0.7, lastModified: now },
-    { url: `${BASE_URL}/arcade`,              changeFrequency: "weekly",  priority: 0.8, lastModified: now },
   ];
 
   // ── Module overview pages ─────────────────────────────────

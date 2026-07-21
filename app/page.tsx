@@ -12,7 +12,6 @@ import HeroSection from "@/components/home/HeroSection";
 import ScrollMarquee from "@/components/home/ScrollMarquee";
 import LessonStoryScroll from "@/components/home/LessonStoryScroll";
 import CodeExperienceSection from "@/components/home/CodeExperienceSection";
-import ArcadeTeaser from "@/components/home/ArcadeTeaser";
 import CurriculumTimeline from "@/components/home/CurriculumTimeline";
 
 export const metadata: Metadata = {
@@ -77,9 +76,6 @@ export default function HomePage() {
 
       {/* ── Sticky code experience: the core product ── */}
       <CodeExperienceSection />
-
-      {/* ── Code Arcade teaser: the gamified USP ── */}
-      <ArcadeTeaser />
 
       {/* ═══ ADSENSE: After lesson showcase (728×90) ═══ */}
       <div role="region" aria-label="Advertisement" className="w-full min-h-[90px] py-2 relative z-10">

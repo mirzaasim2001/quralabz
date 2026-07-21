@@ -48,16 +48,6 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/arcade" className="hover:text-cyan-400 transition-colors">
-                  Code Arcade
-                </Link>
-              </li>
-              <li>
-                <Link href="/certificate" className="hover:text-cyan-400 transition-colors">
-                  Get a Certificate
-                </Link>
-              </li>
-              <li>
                 <Link href="/about" className="hover:text-cyan-400 transition-colors">
                   About Us
                 </Link>
@@ -71,11 +61,6 @@ export default function Footer() {
           <div>
             <h4 className="text-sm font-semibold text-white mb-4">Support</h4>
             <ul className="space-y-2 text-sm text-slate-400">
-              <li>
-                <Link href="/pricing" className="hover:text-cyan-400 transition-colors">
-                  Pricing & Membership
-                </Link>
-              </li>
               <li>
                 <Link href="/contact" className="hover:text-cyan-400 transition-colors">
                   Contact Us
