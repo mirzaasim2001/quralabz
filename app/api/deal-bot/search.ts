@@ -112,9 +112,19 @@ async function bing(query: string, signal: AbortSignal): Promise<RawHit[]> {
     .filter((h) => h.url.startsWith("http"));
 }
 
-async function searchStore(product: string, store: string, signal: AbortSignal): Promise<RawHit[]> {
+/** Per-store outcome, reported by the API only when a request asks for diagnostics. */
+export interface StoreDiag {
+  store: string;
+  ms: number;
+  source: "direct" | "engine" | "none";
+  count: number;
+  directError?: string;
+}
+
+async function searchStore(product: string, store: string, signal: AbortSignal, diag: StoreDiag): Promise<RawHit[]> {
   const direct = await searchStoreDirect(store, product, signal);
-  if (direct.length) return direct;
+  diag.directError = direct.error;
+  if (direct.hits.length) return direct.hits;
   if (signal.aborted) return [];
 
   const [domain] = STORES[store];
@@ -123,7 +133,10 @@ async function searchStore(product: string, store: string, signal: AbortSignal):
   for (const engine of [duckduckgo, bing]) {
     try {
       const hits = (await engine(query, signal)).filter((h) => h.url.includes(domain) && PRODUCT_URL[store].test(h.url));
-      if (hits.length) return hits.slice(0, MAX_HITS_PER_STORE);
+      if (hits.length) {
+        diag.source = "engine";
+        return hits.slice(0, MAX_HITS_PER_STORE);
+      }
     } catch {
       if (signal.aborted) break;
     }
@@ -148,7 +161,9 @@ export function parseBudget(value: unknown): number | null {
   return Math.round(m[2] ? n * 1000 : n) || null;
 }
 
-export async function searchDeals(args: Record<string, unknown>): Promise<{ text: string; artifact: SearchArtifact }> {
+export async function searchDeals(
+  args: Record<string, unknown>,
+): Promise<{ text: string; artifact: SearchArtifact; diagnostics: StoreDiag[] }> {
   let product = String(args.product ?? "").trim();
   let maxPriceRaw = args.max_price;
   if (/[<>]/.test(product)) {
@@ -163,7 +178,17 @@ export async function searchDeals(args: Record<string, unknown>): Promise<{ text
   // Don't wait on stragglers: after the deadline, slow stores are reported as timed out.
   const ctrl = new AbortController();
   const results = new Map<string, RawHit[]>();
-  const all = Promise.all(stores.map((s) => searchStore(product, s, ctrl.signal).then((hits) => results.set(s, hits))));
+  const started = Date.now();
+  const diagnostics: StoreDiag[] = stores.map((store) => ({ store, ms: SEARCH_DEADLINE_MS, source: "none", count: 0 }));
+  const all = Promise.all(
+    stores.map((s, i) =>
+      searchStore(product, s, ctrl.signal, diagnostics[i]).then((hits) => {
+        results.set(s, hits);
+        const d = diagnostics[i];
+        Object.assign(d, { ms: Date.now() - started, count: hits.length, source: hits.length && d.source === "none" ? "direct" : d.source });
+      }),
+    ),
+  );
   await Promise.race([all, new Promise((r) => setTimeout(r, SEARCH_DEADLINE_MS))]);
   ctrl.abort();
 
@@ -186,5 +211,5 @@ export async function searchDeals(args: Record<string, unknown>): Promise<{ text
       lines.push(`[${hit.id}] ${hit.title}\n    ${hit.snippet}`);
     }
   }
-  return { text: lines.join("\n"), artifact: { product, stores, hits, timedOut, maxPrice } };
+  return { text: lines.join("\n"), artifact: { product, stores, hits, timedOut, maxPrice }, diagnostics };
 }

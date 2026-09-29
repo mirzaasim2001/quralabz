@@ -51,7 +51,7 @@ function cleanHistory(raw: unknown): Turn[] {
     }));
 }
 
-async function respond(history: Turn[], message: string, send: Send) {
+async function respond(history: Turn[], message: string, send: Send, debug = false) {
   const deadline = Date.now() + REPLY_BUDGET_MS;
   const turns: Turn[] = [...history, { role: "user", content: message }];
   const convo = chatHistory(turns);
@@ -115,7 +115,7 @@ async function respond(history: Turn[], message: string, send: Send) {
   }
 
   send("status", "🔍 Searching stores for deals…");
-  const { text, artifact } = await searchDeals(call.args);
+  const { text, artifact, diagnostics } = await searchDeals(call.args);
   send("status", "⚖️ Comparing prices…");
   // Product pages (image + exact price) are read while the picker model runs, so they cost ~0-1s extra.
   const pagesReady = readProductPages(artifact.hits);
@@ -139,6 +139,8 @@ async function respond(history: Turn[], message: string, send: Send) {
     }
   }
   const rows = pickRows(picked, artifact, await pagesReady);
+  // Only when the request asks (debug: true): which stores answered, how, and how fast. No secrets in it.
+  if (debug) send("debug", { stores: diagnostics, picked: picked?.listings?.length ?? null, rows: rows.length });
   let summary = typeof picked?.summary === "string" ? picked.summary : "";
   // Prices belong only in the verified table: the picker sees only search text, so any price talk can contradict it.
   if (hasPrice(summary) || /\bprices?\b/i.test(summary)) summary = "";
@@ -161,7 +163,7 @@ export async function POST(req: NextRequest) {
     async start(controller) {
       const send: Send = (event, data) => controller.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
       try {
-        await respond(history, message, send);
+        await respond(history, message, send, body?.debug === true);
       } catch (e) {
         const msg = String(e instanceof Error ? e.message : e);
         send("error", /overload|timed? ?out|no time left|empty reply|5\d\d/i.test(msg) ? "NVIDIA's servers are busy right now 😓 please send that again in a moment." : "Something went wrong. Please try again.");

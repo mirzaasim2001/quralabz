@@ -135,13 +135,16 @@ const READERS: Record<string, (q: string, signal: AbortSignal) => Promise<StoreH
   reliancedigital,
 };
 
-/** The store's own top results, or [] when the store has no reader, blocks us, or its markup changed. */
-export async function searchStoreDirect(store: string, q: string, signal: AbortSignal): Promise<StoreHit[]> {
+/**
+ * The store's own top results; empty when the store has no reader, blocks us, or its markup changed.
+ * `error` says why (HTTP status, parse failure) for the diagnostics in search.ts.
+ */
+export async function searchStoreDirect(store: string, q: string, signal: AbortSignal): Promise<{ hits: StoreHit[]; error?: string }> {
   const read = READERS[store];
-  if (!read) return [];
+  if (!read) return { hits: [], error: "no reader" };
   try {
-    return (await read(q, signal)).filter((h) => h.title && h.url).slice(0, MAX_PER_STORE);
-  } catch {
-    return [];
+    return { hits: (await read(q, signal)).filter((h) => h.title && h.url).slice(0, MAX_PER_STORE) };
+  } catch (e) {
+    return { hits: [], error: e instanceof Error ? e.message.slice(0, 60) : "failed" };
   }
 }
