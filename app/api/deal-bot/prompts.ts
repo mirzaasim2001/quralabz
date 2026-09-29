@@ -47,6 +47,7 @@ export const CORRECTION = `Your draft named prices you don't have, so it was dis
 
 export const MAX_QUESTIONS = 2;
 export const PROMISES_SEARCH = /\b(let me|i'll now|i’ll now|i'm going to|i’m going to)\s+(check|search|look up|pull up|fetch)/i;
+export const OFFERS_SEARCH = /\b(want me to|shall i|should i)\s+(check|look|find|search|pull|compare)[^?]*\?/i;
 export const DECLINE = /only here to|outside (what i do|my lane|my scope)|i only help|can['’]t (suggest|help|write|tell)|don['’]t tell/i;
 export const GREETING = /^\W*(hi+|hello|hey+|yo|namaste|good (morning|afternoon|evening))\W*$/i;
 export const PRICE_IN_TEXT = /(?:₹|Rs\.?|INR)\s?(\d[\d,]{2,})/gi;

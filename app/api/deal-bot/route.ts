@@ -16,6 +16,7 @@ import {
   DECLINE,
   MAX_QUESTIONS,
   NO_MORE_QUESTIONS,
+  OFFERS_SEARCH,
   PROMISES_SEARCH,
   SEARCH_ONLY,
   SYSTEM_PROMPT,
@@ -95,6 +96,13 @@ async function respond(history: Turn[], message: string, send: Send, debug = fal
       res = await forceSearch(res.content.trim() ? [{ role: "assistant", content: res.content }] : []);
     } else if (!res.toolCalls.length && promised && res.content.trim()) {
       lead = res.content;
+      res = await forceSearch([{ role: "assistant", content: res.content }]);
+    } else if (!res.toolCalls.length && answers > 0 && OFFERS_SEARCH.test(end) && !DECLINE.test(res.content)) {
+      // Right after the user answered our question it recommended something and then *asked* whether to check
+      // deals ("Want me to check current deals?"). Just search: keep the recommendation, drop the offer.
+      lead = res.content.replace(/[^.!?\n]*\bwant me to\b[^?]*\?[^\n]*$/i, "").trim();
+      discard();
+      if (lead) token(lead);
       res = await forceSearch([{ role: "assistant", content: res.content }]);
     } else if (res.toolCalls[0]?.name === "search_deals") {
       lead = res.content;
