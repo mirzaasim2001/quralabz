@@ -145,9 +145,17 @@ const READERS: Record<string, (q: string, signal: AbortSignal) => Promise<StoreH
 export async function searchStoreDirect(store: string, q: string, signal: AbortSignal): Promise<{ hits: StoreHit[]; error?: string }> {
   const read = READERS[store];
   if (!read) return { hits: [], error: "no reader" };
-  try {
-    return { hits: (await read(q, signal)).filter((h) => h.title && h.url).slice(0, MAX_PER_STORE) };
-  } catch (e) {
-    return { hits: [], error: e instanceof Error ? e.message.slice(0, 60) : "failed" };
+  let error = "";
+  // Amazon's 503 and Myntra's empty bot page come back in ~0.3s and are often momentary, and the slowest store
+  // (Flipkart) takes ~0.9s anyway, so one quick retry costs no reply time. 403s are hard blocks: no retry.
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      return { hits: (await read(q, signal)).filter((h) => h.title && h.url).slice(0, MAX_PER_STORE) };
+    } catch (e) {
+      error = e instanceof Error ? e.message.slice(0, 60) : "failed";
+      if (signal.aborted || error.startsWith("403")) break;
+      await new Promise((r) => setTimeout(r, 250));
+    }
   }
+  return { hits: [], error };
 }
