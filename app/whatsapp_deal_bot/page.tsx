@@ -7,6 +7,7 @@
 // input bar stays above the on-screen keyboard.
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -123,7 +124,7 @@ export default function WhatsappDealBotPage() {
   const [bubbles, setBubbles] = useState<Bubble[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
-  const [frame, setFrame] = useState<{ top: number; height: number } | null>(null);
+  const [frame, setFrame] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
   const history = useRef<Turn[]>([]);
   const listRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -133,8 +134,15 @@ export default function WhatsappDealBotPage() {
   // shrinks the visual viewport rather than the page), and lock the page behind it so only messages scroll.
   useEffect(() => {
     const vv = window.visualViewport;
+    // Width comes from the visible screen too: elsewhere the site makes the page wider than a phone screen,
+    // and a plain full-width panel would stretch to that and push the Send button off-screen.
     const update = () =>
-      setFrame({ top: (vv?.offsetTop ?? 0) + NAVBAR_PX, height: (vv?.height ?? window.innerHeight) - NAVBAR_PX });
+      setFrame({
+        top: (vv?.offsetTop ?? 0) + NAVBAR_PX,
+        left: vv?.offsetLeft ?? 0,
+        width: vv?.width ?? window.innerWidth,
+        height: (vv?.height ?? window.innerHeight) - NAVBAR_PX,
+      });
     update();
     vv?.addEventListener("resize", update);
     vv?.addEventListener("scroll", update);
@@ -219,10 +227,13 @@ export default function WhatsappDealBotPage() {
     }
   }
 
-  return (
+  // Portal into <body>: the site layout wraps pages in a `relative z-10` <main>, which would trap this
+  // fixed panel under the footer and background-effect layers. z-[45] keeps it just below the navbar (z-50).
+  if (!frame) return null;
+  return createPortal(
     <div
-      className="fixed inset-x-0 z-40 flex flex-col bg-[#0a0a0f] text-white"
-      style={frame ? { top: frame.top, height: frame.height } : { top: NAVBAR_PX, bottom: 0 }}
+      className="fixed z-[45] flex flex-col overflow-hidden bg-[#0a0a0f] text-white"
+      style={{ top: frame.top, left: frame.left, width: frame.width, height: frame.height }}
     >
       <header className="shrink-0 border-b border-white/8 px-4 sm:px-6 py-3">
         <div className="max-w-3xl mx-auto">
@@ -328,6 +339,7 @@ export default function WhatsappDealBotPage() {
           </p>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
