@@ -24,6 +24,8 @@ import {
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
+// Mumbai: users and the Indian stores are here (Vercel's default was iad1, US East).
+export const preferredRegion = "bom1";
 
 const MAX_TURNS = 40;
 const MAX_MESSAGE_CHARS = 1000;

@@ -190,12 +190,23 @@ export default function WhatsappDealBotPage() {
 
     let final: Turn | null = null;
     try {
-      const res = await fetch("/api/deal-bot", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message, history: history.current }),
-      });
-      if (!res.ok || !res.body) throw new Error((await res.json().catch(() => null))?.error || "Request failed");
+      // One automatic retry when the request fails before any reply starts (cold starts, network blips).
+      const post = () =>
+        fetch("/api/deal-bot", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message, history: history.current }),
+        });
+      let res = await post().catch(() => null);
+      if (!res?.ok || !res.body) {
+        await new Promise((r) => setTimeout(r, 800));
+        res = await post().catch(() => null);
+      }
+      if (!res) throw new Error("Couldn't reach the server. Check your connection and try again.");
+      if (!res.ok || !res.body) {
+        const detail = (await res.json().catch(() => null))?.error;
+        throw new Error(detail || `The server had a problem (error ${res.status}). Please try again.`);
+      }
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
