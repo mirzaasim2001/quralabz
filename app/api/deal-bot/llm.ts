@@ -2,12 +2,16 @@
 // Server-side only: reads NVIDIA_API_KEY, which never reaches the browser.
 
 const API_URL = "https://integrate.api.nvidia.com/v1/chat/completions";
-// Nemotron 3 Super answers in ~1-3s; gpt-oss-20b (same key) is the backup. As the main model gpt-oss was
-// 4-5x slower (it always reasons first), so it only takes over when the primary stalls or errors.
-const PRIMARY = "nvidia/nemotron-3-super-120b-a12b";
-const BACKUP = "openai/gpt-oss-20b";
-const SWITCH_AFTER_MS = 10_000; // silence from the primary before the backup takes over
-const BACKUP_IDLE_MS = 20_000;
+// Tried in order; each gets up to this long without receiving data before the next takes over.
+// Nemotron 3 Super answers in ~1-3s. gpt-oss-20b (same key) was 4-5x slower as a main model (it always
+// reasons first), so it's the backup. The last attempt retries Super: by then a brief overload has
+// usually cleared. (Nemotron 3 Ultra was tried as the third: 17s replies and 500s on forced tool calls.)
+const MODELS: [model: string, idleMs: number][] = [
+  ["nvidia/nemotron-3-super-120b-a12b", 10_000],
+  ["openai/gpt-oss-20b", 20_000],
+  ["nvidia/nemotron-3-super-120b-a12b", 15_000],
+];
+const MIN_ATTEMPT_MS = 2_000;
 
 export interface ChatMessage {
   role: "system" | "user" | "assistant";
@@ -36,9 +40,17 @@ function parseArgs(raw: string): Record<string, unknown> {
   }
 }
 
-async function streamOnce(model: string, req: LlmRequest, idleMs: number, onToken?: (t: string) => void): Promise<LlmResult> {
-  // Abort when no data arrives for idleMs, covering both the wait for the first byte and stalls mid-stream.
+async function streamOnce(
+  model: string,
+  req: LlmRequest,
+  idleMs: number,
+  hardMs: number,
+  onToken?: (t: string) => void,
+): Promise<LlmResult> {
+  // Abort when no data arrives for idleMs (covers both the wait for the first byte and stalls mid-stream),
+  // or once hardMs has passed in total, so a slow-but-steady stream can't outlast the reply's time budget.
   const ctrl = new AbortController();
+  const hardStop = setTimeout(() => ctrl.abort(), hardMs);
   let timer = setTimeout(() => ctrl.abort(), idleMs);
   const stillAlive = () => {
     clearTimeout(timer);
@@ -110,18 +122,25 @@ async function streamOnce(model: string, req: LlmRequest, idleMs: number, onToke
     }
     return { content, toolCalls: calls.filter((c) => c?.name).map((c) => ({ name: c.name, args: parseArgs(c.args) })) };
   } catch (e) {
-    if (ctrl.signal.aborted) throw new Error(`${model} was silent for ${idleMs / 1000}s`);
+    if (ctrl.signal.aborted) throw new Error(`${model} timed out`);
     throw e;
   } finally {
     clearTimeout(timer);
+    clearTimeout(hardStop);
   }
 }
 
 /**
- * Primary model first; on an error or SWITCH_AFTER_MS of silence, the backup (retried once).
- * If the primary had already streamed text, onDiscard tells the UI to clear it before the backup's reply.
+ * Tries each model in MODELS until one gives a usable reply, never running past `deadline` (epoch ms).
+ * An error, silence, or an empty reply moves on to the next model. If a model had already streamed text,
+ * onDiscard tells the UI to clear it before the next model's reply.
  */
-export async function chat(req: LlmRequest, onToken?: (t: string) => void, onDiscard?: () => void): Promise<LlmResult> {
+export async function chat(
+  req: LlmRequest,
+  deadline: number,
+  onToken?: (t: string) => void,
+  onDiscard?: () => void,
+): Promise<LlmResult> {
   let streamed = false;
   const emit = onToken
     ? (t: string) => {
@@ -129,20 +148,20 @@ export async function chat(req: LlmRequest, onToken?: (t: string) => void, onDis
         onToken(t);
       }
     : undefined;
-  const dropStreamed = () => {
+  let lastError: unknown = new Error("No time left for a model call");
+
+  for (const [model, idleMs] of MODELS) {
+    const left = deadline - Date.now();
+    if (left < MIN_ATTEMPT_MS) break;
+    try {
+      const result = await streamOnce(model, req, Math.min(idleMs, left), left, emit);
+      if (result.content.trim() || result.toolCalls.length) return result;
+      lastError = new Error(`${model} returned an empty reply`);
+    } catch (e) {
+      lastError = e;
+    }
     if (streamed) onDiscard?.();
     streamed = false;
-  };
-
-  try {
-    return await streamOnce(PRIMARY, req, SWITCH_AFTER_MS, emit);
-  } catch {
-    dropStreamed();
   }
-  try {
-    return await streamOnce(BACKUP, req, BACKUP_IDLE_MS, emit);
-  } catch {
-    dropStreamed();
-    return await streamOnce(BACKUP, req, BACKUP_IDLE_MS, emit);
-  }
+  throw lastError;
 }

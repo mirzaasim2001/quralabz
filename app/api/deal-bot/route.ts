@@ -28,6 +28,11 @@ export const maxDuration = 60;
 export const preferredRegion = "bom1";
 
 const MAX_TURNS = 40;
+// Every model call in one reply shares this budget, so a reply finishes well inside maxDuration (60s)
+// instead of Vercel cutting the stream off mid-way.
+const REPLY_BUDGET_MS = 50_000;
+// Below this much time left, the table is built from the raw results instead of asking the picker model.
+const PICKER_MIN_MS = 8_000;
 const MAX_MESSAGE_CHARS = 1000;
 
 type Send = (event: string, data: unknown) => void;
@@ -46,6 +51,7 @@ function cleanHistory(raw: unknown): Turn[] {
 }
 
 async function respond(history: Turn[], message: string, send: Send) {
+  const deadline = Date.now() + REPLY_BUDGET_MS;
   const turns: Turn[] = [...history, { role: "user", content: message }];
   const convo = chatHistory(turns);
   const answers = questionsAsked(turns);
@@ -56,7 +62,7 @@ async function respond(history: Turn[], message: string, send: Send) {
   const token = (t: string) => send("token", t);
   const discard = () => send("discard", "");
   const forceSearch = (extra: ChatMessage[] = []) =>
-    chat({ messages: [{ role: "system", content: SYSTEM_PROMPT }, ...convo, ...extra], tools: SEARCH_ONLY, toolChoice: "search_deals" });
+    chat({ messages: [{ role: "system", content: SYSTEM_PROMPT }, ...convo, ...extra], tools: SEARCH_ONLY, toolChoice: "search_deals" }, deadline);
 
   let res: LlmResult;
   let lead = ""; // text already on screen before a search (e.g. a recommendation)
@@ -65,11 +71,11 @@ async function respond(history: Turn[], message: string, send: Send) {
     // They answered a second question about this product: search now, never another question.
     res = await forceSearch();
   } else {
-    res = await chat({ messages: [{ role: "system", content: system }, ...convo], tools: TOOLS }, token, discard);
+    res = await chat({ messages: [{ role: "system", content: system }, ...convo], tools: TOOLS }, deadline, token, discard);
     if (!res.toolCalls.length && madeUp(res.content, turns)) {
       // Made-up prices (or an echoed results note) instead of a search: clear it, one retry, then force the search.
       discard();
-      res = await chat({ messages: [{ role: "system", content: `${system}\n\n${CORRECTION}` }, ...convo], tools: TOOLS }, token, discard);
+      res = await chat({ messages: [{ role: "system", content: `${system}\n\n${CORRECTION}` }, ...convo], tools: TOOLS }, deadline, token, discard);
       if (!res.toolCalls.length && madeUp(res.content, turns)) {
         discard();
         res = await forceSearch();
@@ -120,11 +126,14 @@ async function respond(history: Turn[], message: string, send: Send) {
   if (last.role === "user") pickerConvo[pickerConvo.length - 1] = { role: "user", content: `${last.content}\n\n${results}` };
   else pickerConvo.push({ role: "user", content: results });
 
+  // With no picks (models all down, or too little time left), pickRows builds the table from the raw results.
   let picked: ReturnType<typeof parseJson> = null;
-  try {
-    picked = parseJson((await chat({ messages: [{ role: "system", content: ANSWER_PROMPT }, ...pickerConvo], temperature: 0.2 })).content);
-  } catch {
-    picked = null; // both models down: pickRows builds the table from the raw results instead
+  if (artifact.hits.length && deadline - Date.now() > PICKER_MIN_MS) {
+    try {
+      picked = parseJson((await chat({ messages: [{ role: "system", content: ANSWER_PROMPT }, ...pickerConvo], temperature: 0.2 }, deadline)).content);
+    } catch {
+      picked = null;
+    }
   }
   const rows = pickRows(picked, artifact);
   let summary = typeof picked?.summary === "string" ? picked.summary : "";
@@ -151,7 +160,7 @@ export async function POST(req: NextRequest) {
         await respond(history, message, send);
       } catch (e) {
         const msg = String(e instanceof Error ? e.message : e);
-        send("error", /overload|silent|timed? ?out|5\d\d/i.test(msg) ? "NVIDIA's servers are busy right now 😓 please send that again in a moment." : "Something went wrong. Please try again.");
+        send("error", /overload|timed? ?out|no time left|empty reply|5\d\d/i.test(msg) ? "NVIDIA's servers are busy right now 😓 please send that again in a moment." : "Something went wrong. Please try again.");
       }
       send("done", "");
       controller.close();

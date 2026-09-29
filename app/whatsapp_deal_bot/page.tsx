@@ -27,6 +27,7 @@ interface Bubble {
 }
 
 const NAVBAR_PX = 64; // the site's fixed navbar (h-16)
+const MAX_ATTEMPTS = 3;
 const EXAMPLES = ["Any good jackets? 🧥", "iPhone 16 128GB price", "Suggest some earbuds 🎧", "Nike Air Max for men 👟"];
 
 // Rewrites any table-looking block into strict GFM so it always renders as a table
@@ -189,53 +190,71 @@ export default function WhatsappDealBotPage() {
     setBubbles((all) => [...all, { role: "user", content: message }, { role: "assistant", content: "", pending: true }]);
 
     let final: Turn | null = null;
-    try {
-      // One automatic retry when the request fails before any reply starts (cold starts, network blips).
-      const post = () =>
-        fetch("/api/deal-bot", {
+    let failure = "";
+    // Up to 3 attempts. A request that fails (network, cold start, 5xx), or a reply that gets cut off before
+    // any text was shown, is retried silently. The server already falls back across 3 models, so an error it
+    // reports itself is shown rather than retried (a retry would mean another long wait).
+    for (let attempt = 0; attempt < MAX_ATTEMPTS && !final; attempt++) {
+      if (attempt) {
+        await new Promise((r) => setTimeout(r, 700 * attempt));
+        updateLast((b) => ({ ...b, content: "", status: undefined }));
+      }
+      let shown = false;
+      let serverError = "";
+      try {
+        const res = await fetch("/api/deal-bot", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ message, history: history.current }),
         });
-      let res = await post().catch(() => null);
-      if (!res?.ok || !res.body) {
-        await new Promise((r) => setTimeout(r, 800));
-        res = await post().catch(() => null);
-      }
-      if (!res) throw new Error("Couldn't reach the server. Check your connection and try again.");
-      if (!res.ok || !res.body) {
-        const detail = (await res.json().catch(() => null))?.error;
-        throw new Error(detail || `The server had a problem (error ${res.status}). Please try again.`);
-      }
-
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = "";
-      for (;;) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const events = buffer.split("\n\n");
-        buffer = events.pop() ?? "";
-        for (const raw of events) {
-          const event = raw.match(/^event: (.*)$/m)?.[1];
-          const dataLine = raw.match(/^data: (.*)$/m)?.[1];
-          if (!event || dataLine === undefined) continue;
-          const data = JSON.parse(dataLine);
-          if (event === "token") updateLast((b) => ({ ...b, content: b.content + data, status: undefined }));
-          else if (event === "discard") updateLast((b) => ({ ...b, content: "" }));
-          else if (event === "status") updateLast((b) => ({ ...b, status: data }));
-          else if (event === "final") final = data;
-          else if (event === "error") updateLast((b) => ({ ...b, content: data, error: true, status: undefined }));
+        if (!res.ok || !res.body) {
+          failure = (await res.json().catch(() => null))?.error || `The server had a problem (error ${res.status}). Please try again.`;
+          if (res.status < 500 && res.status !== 429) break; // a bad request won't fix itself on retry
+          continue;
         }
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        for (;;) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const events = buffer.split("\n\n");
+          buffer = events.pop() ?? "";
+          for (const raw of events) {
+            const event = raw.match(/^event: (.*)$/m)?.[1];
+            const dataLine = raw.match(/^data: (.*)$/m)?.[1];
+            if (!event || dataLine === undefined) continue;
+            const data = JSON.parse(dataLine);
+            if (event === "token") {
+              shown = true;
+              updateLast((b) => ({ ...b, content: b.content + data, status: undefined }));
+            } else if (event === "discard") updateLast((b) => ({ ...b, content: "" }));
+            else if (event === "status") updateLast((b) => ({ ...b, status: data }));
+            else if (event === "final") final = data;
+            else if (event === "error") serverError = data;
+          }
+        }
+      } catch {
+        failure = "Couldn't reach the server. Check your connection and try again.";
       }
-    } catch (e) {
-      updateLast((b) => ({ ...b, content: e instanceof Error ? e.message : "Network error, please try again.", error: true }));
-    } finally {
-      if (final) history.current = [...history.current, { role: "user", content: message }, final];
-      updateLast((b) => ({ ...b, pending: false, status: undefined }));
-      setBusy(false);
+      if (final) break;
+      if (serverError) {
+        failure = serverError;
+        break;
+      }
+      if (shown) {
+        failure = "The reply got cut off. Please send that again.";
+        break;
+      }
+      failure ||= "The reply didn't come through. Please try again.";
     }
+
+    if (final) history.current = [...history.current, { role: "user", content: message }, final];
+    else updateLast((b) => ({ ...b, content: failure, error: true }));
+    updateLast((b) => ({ ...b, pending: false, status: undefined }));
+    setBusy(false);
   }
 
   // Portal into <body>: the site layout wraps pages in a `relative z-10` <main>, which would trap this
