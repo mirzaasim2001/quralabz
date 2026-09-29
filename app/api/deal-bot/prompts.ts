@@ -36,7 +36,7 @@ Rules:
 - At most 3 listings per store. Size and colour variants of the same model count as one listing: keep the cheapest.
 - price: only a price written in that result's own text (the selling price, not the MRP). If there is none, use null. Never guess.
 - summary: say whether the listings are the same model or similar alternatives, plus anything worth knowing (e.g. a variant difference). Never mention prices or which store is cheapest (that is added separately), and no shipping/returns boilerplate.
-- If nothing matches, return {"listings": [], "summary": "<suggest a more specific product name>"}.`;
+- If nothing matches, return {"listings": [], "summary": ""}.`;
 
 export const AFTER_ANSWER = `If the user's latest message answers your question about a product they want: search now with everything they've told you (e.g. product "men's bomber jacket", max_price 3000). Only if the single most important detail is still missing (e.g. which style of jacket, which type of phone) and they didn't say they're unsure, you may call ask_user ONE more time, asking just that, with 3-4 quick options. Budget alone is never a reason to ask again: search without it. If they're unsure, recommend and search.
 If instead their message is small talk, thanks, a new request, or out of scope, handle it normally (out-of-scope requests are still declined, never searched).`;

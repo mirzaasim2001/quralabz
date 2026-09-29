@@ -87,6 +87,29 @@ function fixTables(md: string): string {
   return out.join("\n");
 }
 
+// The product photo above a deals table: a fixed-size white tile (store photos are shot on white) with the
+// caption beside it, so a large image never takes over the chat. Hidden if the store's CDN refuses it.
+function ProductCard({ src, alt }: { src?: string; alt?: string }) {
+  const [failed, setFailed] = useState(false);
+  if (!src || failed) return null;
+  return (
+    <span className="my-1 flex max-w-sm items-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-2">
+      <span className="flex h-20 w-20 sm:h-24 sm:w-24 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white p-1">
+        {/* eslint-disable-next-line @next/next/no-img-element -- external store CDN images, sized by the tile */}
+        <img
+          src={src}
+          alt={alt ?? ""}
+          loading="lazy"
+          referrerPolicy="no-referrer"
+          onError={() => setFailed(true)}
+          className="max-h-full max-w-full object-contain"
+        />
+      </span>
+      {alt && <span className="text-xs sm:text-sm leading-snug text-white/80">{alt}</span>}
+    </span>
+  );
+}
+
 function Markdown({ text }: { text: string }) {
   return (
     <ReactMarkdown
@@ -111,6 +134,7 @@ function Markdown({ text }: { text: string }) {
         td: ({ node, ...props }) => (
           <td {...props} className="border-t border-white/8 px-2 sm:px-3 py-1.5 sm:py-2 align-top text-white/85 break-words" />
         ),
+        img: ({ src, alt }) => <ProductCard src={typeof src === "string" ? src : undefined} alt={alt} />,
         p: ({ node, ...props }) => <p {...props} className="leading-relaxed [&:not(:first-child)]:mt-2" />,
         ul: ({ node, ...props }) => <ul {...props} className="list-disc pl-5 space-y-1 mt-2" />,
         ol: ({ node, ...props }) => <ol {...props} className="list-decimal pl-5 space-y-1 mt-2" />,

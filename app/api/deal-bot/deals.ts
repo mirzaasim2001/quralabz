@@ -3,6 +3,7 @@
 import { GREETING, PRICE_IN_TEXT } from "./prompts";
 import { STORES, type Hit, type SearchArtifact } from "./search";
 import type { ChatMessage } from "./llm";
+import { cleanImage, type PageInfo } from "./pages";
 
 /** One chat turn as the browser keeps it. The whole history is sent with every message (no server memory). */
 export interface Turn {
@@ -13,9 +14,10 @@ export interface Turn {
   kind?: "chat" | "question" | "deals";
 }
 
-export interface Row extends Hit {
+export interface Row extends Omit<Hit, "price"> {
   product: string;
   price: number | null;
+  image?: string;
 }
 
 const PRICE_ONE = /(?:₹|Rs\.?|INR)\s?(\d[\d,]{2,})/i;
@@ -102,8 +104,15 @@ export function parseJson(text: string): { listings?: unknown[]; summary?: unkno
   }
 }
 
-/** The model's picks become rows; only real result ids, and only prices that appear in that result's text. */
-export function pickRows(picked: ReturnType<typeof parseJson>, artifact: SearchArtifact): Row[] {
+/**
+ * The model's picks become rows; only real result ids. Price: the product page's own listed price when it
+ * could be read (exact and current), otherwise a price that appears in that result's search text.
+ */
+export function pickRows(
+  picked: ReturnType<typeof parseJson>,
+  artifact: SearchArtifact,
+  pages: Map<number, PageInfo> = new Map(),
+): Row[] {
   const hits = new Map(artifact.hits.map((h) => [h.id, h]));
   let rows: Row[] = [];
   if (picked) {
@@ -112,13 +121,25 @@ export function pickRows(picked: ReturnType<typeof parseJson>, artifact: SearchA
       if (!hit) continue;
       let price = toPrice(item.price);
       if (price && !pricesIn(`${hit.title} ${hit.snippet}`).includes(price)) price = null;
-      rows.push({ ...hit, product: String(item.product || hit.title), price });
+      const page = pages.get(hit.id);
+      rows.push({
+        ...hit,
+        product: String(item.product || hit.title),
+        price: page?.price ?? hit.price ?? price,
+        image: page?.image ?? cleanImage(hit.image),
+      });
     }
   } else {
     // Model output unusable: fall back to the first price in each result's own text.
     for (const hit of artifact.hits) {
       const found = `${hit.title} ${hit.snippet}`.match(PRICE_ONE);
-      rows.push({ ...hit, product: hit.title, price: found ? toPrice(found[1]) : null });
+      const page = pages.get(hit.id);
+      rows.push({
+        ...hit,
+        product: hit.title,
+        price: page?.price ?? hit.price ?? (found ? toPrice(found[1]) : null),
+        image: page?.image ?? cleanImage(hit.image),
+      });
     }
   }
 
@@ -145,8 +166,9 @@ const storeName = (s: string) => STORES[s]?.[1] ?? s;
 export function renderAnswer(rows: Row[], artifact: SearchArtifact, summary: string): string {
   const names = artifact.stores.map(storeName);
   if (!rows.length) {
+    // No model-written advice here: it tended to suggest "a more specific name" that was just the user's own words.
     const where = names.length > 1 ? `${names.slice(0, -1).join(", ")} or ${names[names.length - 1]}` : names[0];
-    return `😕 I couldn't find a matching listing on ${where}. ${summary}`.trim();
+    return `😕 I couldn't find "${artifact.product}" on ${where} just now. Want me to look for a similar product, or try a different brand or model?`;
   }
 
   const priced = rows.filter((r) => r.price !== null);
@@ -166,7 +188,7 @@ export function renderAnswer(rows: Row[], artifact: SearchArtifact, summary: str
 
   let verdict: string;
   if (!priced.length) {
-    verdict = "🔎 No prices were shown in the search results. Open the links to compare.";
+    verdict = "🔎 No prices could be read for these listings. Open the links to compare.";
   } else {
     const best = priced[0];
     const rival = priced.find((r) => r.store !== best.store);
@@ -178,7 +200,22 @@ export function renderAnswer(rows: Row[], artifact: SearchArtifact, summary: str
       else verdict += ` 💰 ${rupees(rival.price! - best.price!)} less than ${storeName(rival.store)} (${rupees(rival.price!)}).`;
     }
   }
-  return `${lines.join("\n")}\n\n${verdict}${summary ? `\n\n💡 ${summary}` : ""}`;
+  return `${productCard(rows, priced[0])}${lines.join("\n")}\n\n${verdict}${summary ? `\n\n💡 ${summary}` : ""}`;
+}
+
+/** One product image above the table: the best deal's, else the first listing that has one. */
+function productCard(rows: Row[], best?: Row): string {
+  const pick = best?.image ? best : rows.find((r) => r.image);
+  if (!pick?.image) return "";
+  const caption = [
+    `${pick === best ? "🏆 " : ""}${cell(pick.product).replace(/[[\]]/g, "")}`,
+    storeName(pick.store),
+    pick.price === null ? "" : rupees(pick.price),
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  const src = pick.image.replace(/ /g, "%20").replace(/\(/g, "%28").replace(/\)/g, "%29");
+  return `![${caption}](${src})\n\n`;
 }
 
 export function historyNote(rows: Row[], artifact: SearchArtifact): string {

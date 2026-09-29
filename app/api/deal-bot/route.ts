@@ -7,6 +7,7 @@
 import { NextRequest } from "next/server";
 import { chat, type ChatMessage, type LlmResult } from "./llm";
 import { searchDeals } from "./search";
+import { readProductPages } from "./pages";
 import { chatHistory, hasPrice, historyNote, madeUp, parseJson, pickRows, questionsAsked, renderAnswer, tail, type Turn } from "./deals";
 import {
   AFTER_ANSWER,
@@ -116,6 +117,8 @@ async function respond(history: Turn[], message: string, send: Send) {
   send("status", "🔍 Searching stores for deals…");
   const { text, artifact } = await searchDeals(call.args);
   send("status", "⚖️ Comparing prices…");
+  // Product pages (image + exact price) are read while the picker model runs, so they cost ~0-1s extra.
+  const pagesReady = readProductPages(artifact.hits);
 
   // The picker only chooses listings (JSON, no tools; with tools Nemotron writes fake tool-call XML).
   // Sorting, per-store rows and the savings line are done in code so they're always right.
@@ -135,9 +138,10 @@ async function respond(history: Turn[], message: string, send: Send) {
       picked = null;
     }
   }
-  const rows = pickRows(picked, artifact);
+  const rows = pickRows(picked, artifact, await pagesReady);
   let summary = typeof picked?.summary === "string" ? picked.summary : "";
-  if (hasPrice(summary)) summary = ""; // prices belong only in the verified table
+  // Prices belong only in the verified table: the picker sees only search text, so any price talk can contradict it.
+  if (hasPrice(summary) || /\bprices?\b/i.test(summary)) summary = "";
   const answer = renderAnswer(rows, artifact, summary);
 
   send("token", `\n\n${answer}`);

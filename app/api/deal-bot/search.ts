@@ -1,6 +1,11 @@
-// Store search: "<product> price site:<store>" per store, in parallel, on free search engines.
+// Store search, all stores in parallel. Each store's own search comes first (stores.ts: real products with
+// price and image); "<product> price site:<store>" on free search engines is the fallback.
 // Ported from WB/search.py. The Python version used the ddgs library (browser-impersonating);
 // from Node, DuckDuckGo's HTML endpoint and Bing work, Yahoo rejects plain fetch with a 500.
+
+import { searchStoreDirect, UA, type StoreHit } from "./stores";
+
+export { UA };
 
 export const STORES: Record<string, [domain: string, name: string]> = {
   amazon: ["amazon.in", "Amazon"],
@@ -30,16 +35,11 @@ const PRODUCT_URL: Record<string, RegExp> = {
   nykaa: /\/p\/\d/,
 };
 
-const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36";
-
-export interface Hit {
+export interface Hit extends StoreHit {
   id: number;
   store: string;
-  title: string;
-  url: string;
-  snippet: string;
 }
-type RawHit = Omit<Hit, "id" | "store">;
+type RawHit = StoreHit;
 
 export interface SearchArtifact {
   product: string;
@@ -113,6 +113,10 @@ async function bing(query: string, signal: AbortSignal): Promise<RawHit[]> {
 }
 
 async function searchStore(product: string, store: string, signal: AbortSignal): Promise<RawHit[]> {
+  const direct = await searchStoreDirect(store, product, signal);
+  if (direct.length) return direct;
+  if (signal.aborted) return [];
+
   const [domain] = STORES[store];
   const query = `${product} price site:${domain}`;
   // DuckDuckGo answers in ~0.7s; Bing is the fallback when it's rate-limited or finds no product pages.
