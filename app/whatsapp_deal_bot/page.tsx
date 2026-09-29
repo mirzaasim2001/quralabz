@@ -1,14 +1,332 @@
 "use client";
 
-// Hidden test route - not linked from nav, excluded from sitemap, noindex
-// below (see layout.tsx). Placeholder — replace with the real frontend.
+// Hidden test route - not linked from nav, excluded from sitemap, noindex (see layout.tsx).
+// Deal Finder: a shopping chat that compares prices across Indian stores. The conversation lives only in
+// this page's state and is sent with every message; reloading the page starts a fresh chat.
+// Built phone-first: the chat fills the screen below the site navbar, only the message list scrolls, and the
+// input bar stays above the on-screen keyboard.
+
+import { useEffect, useRef, useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+
+interface Turn {
+  role: "user" | "assistant";
+  content: string;
+  note?: string;
+  kind?: "chat" | "question" | "deals";
+}
+
+interface Bubble {
+  role: "user" | "assistant";
+  content: string;
+  status?: string;
+  error?: boolean;
+  pending?: boolean;
+}
+
+const NAVBAR_PX = 64; // the site's fixed navbar (h-16)
+const EXAMPLES = ["Any good jackets? 🧥", "iPhone 16 128GB price", "Suggest some earbuds 🎧", "Nike Air Max for men 👟"];
+
+// Rewrites any table-looking block into strict GFM so it always renders as a table
+// (models emit em-dash separator rows, wrong column counts, blank lines between rows, fenced tables...).
+function splitRow(line: string): string[] {
+  let s = line.trim();
+  if (s.startsWith("|")) s = s.slice(1);
+  if (s.endsWith("|") && !s.endsWith("\\|")) s = s.slice(0, -1);
+  return s.split(/(?<!\\)\|/).map((c) => c.trim());
+}
+const isRow = (l: string) => {
+  const t = l.trim();
+  return t.startsWith("|") || (t.match(/(?<!\\)\|/g) || []).length >= 2;
+};
+const isSep = (cells: string[]) => cells.every((c) => /^:?[-—–‒―]+:?$/.test(c));
+
+function fixTables(md: string): string {
+  md = md.replace(/[│┃]/g, "|").replace(/```[^\n]*\n([\s\S]*?)\n?```/g, (m, body: string) => {
+    const ls = body.split("\n").filter((l) => l.trim());
+    return ls.length >= 2 && ls.every(isRow) ? `\n${body}\n` : m;
+  });
+  const lines = md.split("\n");
+  const out: string[] = [];
+  let i = 0;
+  let inFence = false;
+  while (i < lines.length) {
+    if (lines[i].trim().startsWith("```")) inFence = !inFence;
+    if (inFence || !isRow(lines[i])) {
+      out.push(lines[i++]);
+      continue;
+    }
+    const group: string[] = [];
+    let j = i;
+    while (j < lines.length) {
+      if (isRow(lines[j])) {
+        group.push(lines[j++]);
+        continue;
+      }
+      let k = j;
+      while (k < lines.length && !lines[k].trim()) k++;
+      if (k > j && k < lines.length && isRow(lines[k])) {
+        j = k;
+        continue;
+      }
+      break;
+    }
+    i = j;
+    const rows = group.map(splitRow).filter((r) => !isSep(r));
+    if (group.length < 2 || !rows.length) {
+      out.push(...group);
+      continue;
+    }
+    const n = Math.max(...rows.map((r) => r.length));
+    const fmt = (r: string[]) => `| ${r.concat(Array(n - r.length).fill("")).join(" | ")} |`;
+    out.push("", fmt(rows[0]), `|${" --- |".repeat(n)}`, ...rows.slice(1).map(fmt), "");
+  }
+  return out.join("\n");
+}
+
+function Markdown({ text }: { text: string }) {
+  return (
+    <ReactMarkdown
+      remarkPlugins={[remarkGfm]}
+      components={{
+        a: ({ node, ...props }) => (
+          <a
+            {...props}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-cyan-300 hover:text-cyan-200 underline underline-offset-2 whitespace-nowrap"
+          />
+        ),
+        table: ({ node, ...props }) => (
+          <div className="my-2 -mx-1 overflow-x-auto overscroll-x-contain rounded-xl border border-white/10">
+            <table {...props} className="w-full text-[12px] sm:text-sm border-collapse" />
+          </div>
+        ),
+        th: ({ node, ...props }) => (
+          <th {...props} className="bg-white/[0.05] px-2 sm:px-3 py-1.5 sm:py-2 text-left font-medium text-white/70 whitespace-nowrap" />
+        ),
+        td: ({ node, ...props }) => (
+          <td {...props} className="border-t border-white/8 px-2 sm:px-3 py-1.5 sm:py-2 align-top text-white/85 break-words" />
+        ),
+        p: ({ node, ...props }) => <p {...props} className="leading-relaxed [&:not(:first-child)]:mt-2" />,
+        ul: ({ node, ...props }) => <ul {...props} className="list-disc pl-5 space-y-1 mt-2" />,
+        ol: ({ node, ...props }) => <ol {...props} className="list-decimal pl-5 space-y-1 mt-2" />,
+      }}
+    >
+      {fixTables(text)}
+    </ReactMarkdown>
+  );
+}
 
 export default function WhatsappDealBotPage() {
+  const [bubbles, setBubbles] = useState<Bubble[]>([]);
+  const [input, setInput] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [frame, setFrame] = useState<{ top: number; height: number } | null>(null);
+  const history = useRef<Turn[]>([]);
+  const listRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const followBottom = useRef(true);
+
+  // Size the chat to the *visible* screen, so the input bar stays above the on-screen keyboard (iOS Safari
+  // shrinks the visual viewport rather than the page), and lock the page behind it so only messages scroll.
+  useEffect(() => {
+    const vv = window.visualViewport;
+    const update = () =>
+      setFrame({ top: (vv?.offsetTop ?? 0) + NAVBAR_PX, height: (vv?.height ?? window.innerHeight) - NAVBAR_PX });
+    update();
+    vv?.addEventListener("resize", update);
+    vv?.addEventListener("scroll", update);
+    window.addEventListener("resize", update);
+    const { documentElement: html, body } = document;
+    const previous = [html.style.overflow, body.style.overflow];
+    html.style.overflow = body.style.overflow = "hidden";
+    return () => {
+      vv?.removeEventListener("resize", update);
+      vv?.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+      [html.style.overflow, body.style.overflow] = previous;
+    };
+  }, []);
+
+  // Follow new text only while the reader is at the bottom; don't yank them down if they scrolled up to read.
+  useEffect(() => {
+    const list = listRef.current;
+    if (list && followBottom.current) list.scrollTop = list.scrollHeight;
+  }, [bubbles, frame]);
+
+  const onScroll = () => {
+    const list = listRef.current;
+    if (list) followBottom.current = list.scrollHeight - list.scrollTop - list.clientHeight < 80;
+  };
+
+  const growInput = () => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
+  };
+
+  const updateLast = (patch: (b: Bubble) => Bubble) =>
+    setBubbles((all) => all.map((b, i) => (i === all.length - 1 ? patch(b) : b)));
+
+  async function send(text: string) {
+    const message = text.trim();
+    if (!message || busy) return;
+    setInput("");
+    requestAnimationFrame(growInput);
+    setBusy(true);
+    followBottom.current = true;
+    setBubbles((all) => [...all, { role: "user", content: message }, { role: "assistant", content: "", pending: true }]);
+
+    let final: Turn | null = null;
+    try {
+      const res = await fetch("/api/deal-bot", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message, history: history.current }),
+      });
+      if (!res.ok || !res.body) throw new Error((await res.json().catch(() => null))?.error || "Request failed");
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const events = buffer.split("\n\n");
+        buffer = events.pop() ?? "";
+        for (const raw of events) {
+          const event = raw.match(/^event: (.*)$/m)?.[1];
+          const dataLine = raw.match(/^data: (.*)$/m)?.[1];
+          if (!event || dataLine === undefined) continue;
+          const data = JSON.parse(dataLine);
+          if (event === "token") updateLast((b) => ({ ...b, content: b.content + data, status: undefined }));
+          else if (event === "discard") updateLast((b) => ({ ...b, content: "" }));
+          else if (event === "status") updateLast((b) => ({ ...b, status: data }));
+          else if (event === "final") final = data;
+          else if (event === "error") updateLast((b) => ({ ...b, content: data, error: true, status: undefined }));
+        }
+      }
+    } catch (e) {
+      updateLast((b) => ({ ...b, content: e instanceof Error ? e.message : "Network error, please try again.", error: true }));
+    } finally {
+      if (final) history.current = [...history.current, { role: "user", content: message }, final];
+      updateLast((b) => ({ ...b, pending: false, status: undefined }));
+      setBusy(false);
+    }
+  }
+
   return (
-    <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center px-4">
-      <div className="max-w-2xl w-full text-slate-200">
-        <h1 className="text-2xl font-bold text-white mb-4">Test Page</h1>
-        <p className="text-slate-400">Scratch space — not linked from anywhere on the site.</p>
+    <div
+      className="fixed inset-x-0 z-40 flex flex-col bg-[#0a0a0f] text-white"
+      style={frame ? { top: frame.top, height: frame.height } : { top: NAVBAR_PX, bottom: 0 }}
+    >
+      <header className="shrink-0 border-b border-white/8 px-4 sm:px-6 py-3">
+        <div className="max-w-3xl mx-auto">
+          <h1 className="text-base sm:text-lg font-semibold bg-gradient-to-r from-violet-400 to-cyan-400 bg-clip-text text-transparent">
+            Deal Finder 🛍️
+          </h1>
+          <p className="text-xs sm:text-sm text-white/50 mt-0.5">Best prices across Amazon, Flipkart, Myntra, AJIO, Croma & more</p>
+        </div>
+      </header>
+
+      <div ref={listRef} onScroll={onScroll} className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
+        <div className="max-w-3xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-3 sm:space-y-4">
+          {bubbles.length === 0 && (
+            <div className="pt-6 sm:pt-14 text-center space-y-5">
+              <div>
+                <h2 className="text-xl sm:text-2xl font-semibold text-white/90">What are you shopping for?</h2>
+                <p className="text-sm text-white/45 mt-1">Ask about any product and I&apos;ll find the best deal.</p>
+              </div>
+              <div className="grid sm:grid-cols-2 gap-2 text-left">
+                {EXAMPLES.map((q) => (
+                  <button
+                    key={q}
+                    onClick={() => send(q)}
+                    className="rounded-xl bg-white/[0.03] border border-white/8 px-4 py-3 text-sm text-white/70 active:bg-white/[0.08] hover:bg-white/[0.06] hover:border-white/15 transition-colors"
+                  >
+                    {q}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {bubbles.map((b, i) => (
+            <div key={i} className={b.role === "user" ? "flex justify-end" : "flex justify-start"}>
+              {b.role === "user" ? (
+                <div className="max-w-[85%] rounded-2xl rounded-br-md bg-gradient-to-r from-violet-500/20 to-cyan-500/20 border border-white/10 px-3.5 py-2.5 text-sm whitespace-pre-wrap break-words">
+                  {b.content}
+                </div>
+              ) : (
+                <div
+                  className={`w-fit max-w-full sm:max-w-[88%] min-w-0 rounded-2xl rounded-bl-md border px-3.5 py-2.5 text-sm ${
+                    b.error ? "bg-red-500/10 border-red-500/20 text-red-300" : "bg-white/[0.03] border-white/8 text-white/90"
+                  }`}
+                >
+                  {b.status && <p className="text-xs italic text-white/45 mb-1">{b.status}</p>}
+                  {b.content ? (
+                    b.error ? <p>{b.content}</p> : <Markdown text={b.content} />
+                  ) : (
+                    b.pending &&
+                    !b.status && (
+                      <span className="inline-flex gap-1 py-1" aria-label="Typing">
+                        <span className="h-1.5 w-1.5 rounded-full bg-white/40 animate-bounce" />
+                        <span className="h-1.5 w-1.5 rounded-full bg-white/40 animate-bounce [animation-delay:150ms]" />
+                        <span className="h-1.5 w-1.5 rounded-full bg-white/40 animate-bounce [animation-delay:300ms]" />
+                      </span>
+                    )
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="shrink-0 border-t border-white/8 bg-[#0a0a0f] px-3 sm:px-6 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+        <div className="max-w-3xl mx-auto space-y-1.5">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              send(input);
+            }}
+            className="flex gap-2 items-end"
+          >
+            {/* 16px text on phones: iOS zooms the page when focusing inputs smaller than that */}
+            <textarea
+              ref={inputRef}
+              value={input}
+              rows={1}
+              enterKeyHint="send"
+              onChange={(e) => {
+                setInput(e.target.value);
+                growInput();
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  send(input);
+                }
+              }}
+              placeholder="Message Deal Finder…"
+              className="flex-1 resize-none rounded-xl bg-white/[0.04] border border-white/10 px-3.5 py-2.5 text-base sm:text-sm leading-6 focus:outline-none focus:border-violet-400/50"
+            />
+            <button
+              type="submit"
+              disabled={busy || !input.trim()}
+              className="h-11 shrink-0 rounded-xl px-4 sm:px-5 text-sm font-medium bg-gradient-to-r from-violet-500 to-cyan-500 disabled:opacity-40 active:opacity-80 hover:opacity-90 transition-opacity"
+            >
+              Send
+            </button>
+          </form>
+          <p className="text-center text-[10px] sm:text-[11px] leading-snug text-white/35">
+            Prices come from search results and can be out of date. Confirm on the store page. Chat resets on reload.
+          </p>
+        </div>
       </div>
     </div>
   );
