@@ -52,7 +52,8 @@ function cleanHistory(raw: unknown): Turn[] {
 }
 
 async function respond(history: Turn[], message: string, send: Send, debug = false) {
-  const deadline = Date.now() + REPLY_BUDGET_MS;
+  const started = Date.now();
+  const deadline = started + REPLY_BUDGET_MS;
   const turns: Turn[] = [...history, { role: "user", content: message }];
   const convo = chatHistory(turns);
   const answers = questionsAsked(turns);
@@ -115,8 +116,10 @@ async function respond(history: Turn[], message: string, send: Send, debug = fal
   }
 
   send("status", "🔍 Searching stores for deals…");
+  const searchAt = Date.now();
   const { text, artifact, diagnostics } = await searchDeals(call.args);
   send("status", "⚖️ Comparing prices…");
+  const pickAt = Date.now();
   // Product pages (image + exact price) are read while the picker model runs, so they cost ~0-1s extra.
   const pagesReady = readProductPages(artifact.hits);
 
@@ -140,7 +143,10 @@ async function respond(history: Turn[], message: string, send: Send, debug = fal
   }
   const rows = pickRows(picked, artifact, await pagesReady);
   // Only when the request asks (debug: true): which stores answered, how, and how fast. No secrets in it.
-  if (debug) send("debug", { stores: diagnostics, picked: picked?.listings?.length ?? null, rows: rows.length });
+  if (debug) {
+    const now = Date.now();
+    send("debug", { stores: diagnostics, picked: picked?.listings?.length ?? null, rows: rows.length, ms: { decide: searchAt - started, search: pickAt - searchAt, pickAndPages: now - pickAt } });
+  }
   let summary = typeof picked?.summary === "string" ? picked.summary : "";
   // Prices belong only in the verified table: the picker sees only search text, so any price talk can contradict it.
   if (hasPrice(summary) || /\bprices?\b/i.test(summary)) summary = "";

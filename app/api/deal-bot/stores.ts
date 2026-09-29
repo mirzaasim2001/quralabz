@@ -59,7 +59,10 @@ async function flipkart(q: string, signal: AbortSignal): Promise<StoreHit[]> {
   for (const block of html.split('<div data-id="').slice(1)) {
     const path = (block.match(/href="(\/[^"?]*\/p\/itm[a-z0-9]+)/i) || [])[1];
     const img = block.match(/<img[^>]*>/g)?.find((t) => t.includes("rukminim")) ?? "";
-    const title = decode((img.match(/alt="([^"]+)"/) || [])[1] ?? "");
+    // Electronics cards name the product in the image's alt text; fashion cards leave alt empty and put the
+    // brand in a div right before a link whose title attribute holds the product name.
+    const fashion = block.match(/>([^<>]{2,40})<\/div><a[^>]*title="([^"]+)"/);
+    const title = decode((img.match(/alt="([^"]+)"/) || [])[1] || (fashion ? `${fashion[1]} ${fashion[2]}` : ""));
     if (!path || !title) continue;
     const price = num((block.match(/₹([\d,]+)/) || [])[1]);
     hits.push({ title, url: `https://www.flipkart.com${path}`, snippet: priceText(price), price, image: (img.match(/src="([^"]+)"/) || [])[1] });
@@ -71,7 +74,7 @@ async function myntra(q: string, signal: AbortSignal): Promise<StoreHit[]> {
   const slug = q.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
   const html = await get(`https://www.myntra.com/${slug}?rawQuery=${enc(q)}`, signal);
   const start = html.indexOf("window.__myx = ");
-  if (start < 0) return [];
+  if (start < 0) throw new Error("no search data in page");
   const json = html.slice(start + 15, html.indexOf("</script>", start)).trim().replace(/;$/, "");
   const products = JSON.parse(json)?.searchData?.results?.products ?? [];
   return products.map((p: Record<string, unknown>) => {
