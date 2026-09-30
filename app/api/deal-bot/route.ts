@@ -26,8 +26,9 @@ import {
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
-// Mumbai: users and the Indian stores are here (Vercel's default was iad1, US East).
-export const preferredRegion = "bom1";
+// Singapore: Mumbai (bom1) was being blocked by Flipkart (529), Amazon (503), AJIO/Reliance (403); sin1 is
+// the nearest region with different server addresses.
+export const preferredRegion = "sin1";
 
 const MAX_TURNS = 40;
 // Every model call in one reply shares this budget, so a reply finishes well inside maxDuration (60s)
