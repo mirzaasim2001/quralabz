@@ -390,6 +390,8 @@ export default function WhatsappDealBotPage() {
           </form>
           <p className="text-center text-[10px] sm:text-[11px] leading-snug text-white/35">
             Prices come from search results and can be out of date. Confirm on the store page. Chat resets on reload.
+            <br />
+            As an Amazon Associate, I earn from qualifying purchases.
           </p>
         </div>
       </div>

@@ -4,6 +4,7 @@ import { GREETING, PRICE_IN_TEXT } from "./prompts";
 import { STORES, type Hit, type SearchArtifact } from "./search";
 import type { ChatMessage } from "./llm";
 import { cleanImage, type PageInfo } from "./pages";
+import { affiliateUrl } from "./affiliate";
 
 /** One chat turn as the browser keeps it. The whole history is sent with every message (no server memory). */
 export interface Turn {
@@ -143,6 +144,10 @@ export function pickRows(
     }
   }
 
+  // Amazon Associates policy: Amazon prices and images may only be shown when they come from Amazon's
+  // Product Advertising API. Until the account has API access, Amazon rows are link-only.
+  rows = rows.map((r) => (r.store === "amazon" ? { ...r, price: null, image: undefined } : r));
+
   if (artifact.maxPrice) rows = rows.filter((r) => r.price === null || r.price <= artifact.maxPrice!);
 
   // One cheapest row per store when comparing many stores; a few options when only one or two were searched.
@@ -176,8 +181,8 @@ export function renderAnswer(rows: Row[], artifact: SearchArtifact, summary: str
   rows.forEach((r, i) => {
     const best = priced.length > 0 && r === priced[0];
     const store = best ? `🏆 **${storeName(r.store)}**` : storeName(r.store);
-    const price = r.price === null ? "Not shown" : best ? `**${rupees(r.price)}**` : rupees(r.price);
-    const link = r.url.replace(/ /g, "%20").replace(/\)/g, "%29");
+    const price = r.price === null ? (r.store === "amazon" ? "See on Amazon" : "Not shown") : best ? `**${rupees(r.price)}**` : rupees(r.price);
+    const link = affiliateUrl(r.store, r.url).replace(/ /g, "%20").replace(/\)/g, "%29");
     lines.push(`| ${r.price === null ? "–" : i + 1} | ${store} | ${cell(r.product)} | ${price} | [View](${link}) |`);
   });
   for (const s of artifact.stores) {

@@ -86,7 +86,8 @@ async function readPage(hit: Hit): Promise<PageInfo> {
  */
 export async function readProductPages(hits: Hit[]): Promise<Map<number, PageInfo>> {
   const pages = new Map<number, PageInfo>();
-  const needed = hits.filter((h) => !h.price || !h.image);
+  // Amazon's price and image can't be shown (Associates policy, see deals.ts), so its pages aren't read.
+  const needed = hits.filter((h) => h.store !== "amazon" && (!h.price || !h.image));
   await Promise.all(
     needed.slice(0, MAX_PAGES).map((hit) =>
       readPage(hit)
