@@ -4,7 +4,7 @@ import { GREETING, PRICE_IN_TEXT } from "./prompts";
 import { STORES, type Hit, type SearchArtifact } from "./search";
 import type { ChatMessage } from "./llm";
 import { cleanImage, type PageInfo } from "./pages";
-import { affiliateUrl } from "./affiliate";
+import { affiliateUrl, storeSearchUrl } from "./affiliate";
 
 /** One chat turn as the browser keeps it. The whole history is sent with every message (no server memory). */
 export interface Turn {
@@ -171,9 +171,14 @@ const storeName = (s: string) => STORES[s]?.[1] ?? s;
 export function renderAnswer(rows: Row[], artifact: SearchArtifact, summary: string): string {
   const names = artifact.stores.map(storeName);
   if (!rows.length) {
-    // No model-written advice here: it tended to suggest "a more specific name" that was just the user's own words.
-    const where = names.length > 1 ? `${names.slice(0, -1).join(", ")} or ${names[names.length - 1]}` : names[0];
-    return `😕 I couldn't find "${artifact.product}" on ${where} just now. Want me to look for a similar product, or try a different brand or model?`;
+    // Never a dead end: when no store returned readable listings (often because it blocked the request), hand
+    // over each store's own search for the product. No model-written advice here: it tended to suggest
+    // "a more specific name" that was just the user's own words.
+    const links = artifact.stores
+      .map((s) => [storeName(s), storeSearchUrl(s, artifact.product)] as const)
+      .filter(([, url]) => url)
+      .map(([name, url]) => `[${name}](${url})`);
+    return `😕 The stores didn't return listings for "${artifact.product}" just now. You can check them directly: ${links.join(" · ")}`;
   }
 
   const priced = rows.filter((r) => r.price !== null);

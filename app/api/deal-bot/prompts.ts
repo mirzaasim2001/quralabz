@@ -69,7 +69,7 @@ export const TOOLS = [
             type: "array",
             items: { type: "string" },
             description:
-              "Stores to compare. Options: amazon, flipkart, myntra, ajio, croma, reliancedigital, tatacliq, nykaa. Include every store that sells this kind of product (fashion: myntra, ajio, tatacliq; electronics: croma, reliancedigital, tatacliq; beauty: nykaa). Amazon and Flipkart are always added. To check one specific store the user asked about, pass only that store.",
+              "Stores to compare. Options: amazon, flipkart, snapdeal, myntra, ajio, croma, reliancedigital, tatacliq, nykaa, decathlon. Include every store that sells this kind of product (fashion: myntra, ajio, tatacliq; shoes, sportswear, jackets: decathlon; electronics: croma, reliancedigital, tatacliq; beauty: nykaa). Amazon, Flipkart and Snapdeal are always added. To check one specific store the user asked about, pass only that store.",
           },
           max_price: { type: "integer", description: 'The user\'s budget in INR, if they gave one (e.g. "under 3k" -> 3000).' },
         },

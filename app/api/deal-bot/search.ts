@@ -16,9 +16,12 @@ export const STORES: Record<string, [domain: string, name: string]> = {
   reliancedigital: ["reliancedigital.in", "Reliance Digital"],
   tatacliq: ["tatacliq.com", "Tata CLiQ"],
   nykaa: ["nykaa.com", "Nykaa"],
+  snapdeal: ["snapdeal.com", "Snapdeal"],
+  decathlon: ["decathlon.in", "Decathlon"],
 };
-const ALWAYS_SEARCH = ["amazon", "flipkart"];
-const MAX_STORES = 6;
+// Snapdeal too: it carries almost everything and still answers server requests when Amazon/Flipkart block them.
+const ALWAYS_SEARCH = ["amazon", "flipkart", "snapdeal"];
+const MAX_STORES = 7;
 const MAX_HITS_PER_STORE = 3;
 const SEARCH_DEADLINE_MS = 4000;
 
@@ -33,6 +36,8 @@ const PRODUCT_URL: Record<string, RegExp> = {
   reliancedigital: /\/(p|product)\//,
   tatacliq: /\/p-mp\d/,
   nykaa: /\/p\/\d/,
+  snapdeal: /\/product\//,
+  decathlon: /\/p\/\d/,
 };
 
 export interface Hit extends StoreHit {

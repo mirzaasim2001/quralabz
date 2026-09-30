@@ -9,7 +9,7 @@ import { UA, type Hit } from "./search";
 const PAGE_TIMEOUT_MS = 2500;
 const MAX_PAGES = 12;
 // Images are shown straight from the stores' own CDNs; anything else is ignored.
-const IMAGE_HOST = /(^|\.)(media-amazon\.com|ssl-images-amazon\.com|flixcart\.com|myntassets\.com|tatacliq\.com|jiostore\.online|ajio\.com|croma\.com|tatacroma\.com|nykaa\.com|nykaafashion\.com)$/i;
+const IMAGE_HOST = /(^|\.)(media-amazon\.com|ssl-images-amazon\.com|flixcart\.com|myntassets\.com|tatacliq\.com|jiostore\.online|ajio\.com|croma\.com|tatacroma\.com|nykaa\.com|nykaafashion\.com|sdlcdn\.com|mediadecathlon\.com)$/i;
 
 export interface PageInfo {
   image?: string;

@@ -129,7 +129,43 @@ async function reliancedigital(q: string, signal: AbortSignal): Promise<StoreHit
   return hits;
 }
 
+// Snapdeal and Decathlon were added 2026-09-30 when Amazon/Flipkart/Myntra/AJIO started blocking server requests:
+// both send results in plain HTML and, as smaller sites, protect them less aggressively.
+async function snapdeal(q: string, signal: AbortSignal): Promise<StoreHit[]> {
+  const html = await get(`https://www.snapdeal.com/search?keyword=${enc(q)}`, signal);
+  const hits: StoreHit[] = [];
+  for (const block of html.split("product-tuple-listing").slice(1)) {
+    const url = (block.match(/href="(https:\/\/www\.snapdeal\.com\/product\/[^"]+)"/) || [])[1];
+    const title = decode((block.match(/class="product-title"[^>]*title="([^"]+)"/) || [])[1] ?? "");
+    if (!url || !title) continue;
+    const price = num((block.match(/class="lfloat product-price"[^>]*>\s*Rs\.?\s*([\d,]+)/) || block.match(/display-price="(\d+)"/) || [])[1]);
+    const image = (block.match(/<img[^>]*src="(https:\/\/g\.sdlcdn\.com[^"]+)"/) || [])[1];
+    hits.push({ title, url, snippet: priceText(price), price, image });
+  }
+  return hits;
+}
+
+async function decathlon(q: string, signal: AbortSignal): Promise<StoreHit[]> {
+  const html = await get(`https://www.decathlon.in/search?query=${enc(q)}`, signal);
+  const hits: StoreHit[] = [];
+  const cards = html.split('data-test-id="product-card-link"');
+  for (let i = 0; i < cards.length - 1; i++) {
+    // The card's link and name are on the <a> that ends just before the marker; its image and price follow it.
+    const opening = cards[i].slice(cards[i].lastIndexOf("<a "));
+    const path = (opening.match(/href="(\/p\/[^"]+)"/) || [])[1];
+    const title = decode((opening.match(/aria-label="([^"]+)"/) || [])[1] ?? "");
+    if (!path || !title) continue;
+    const body = cards[i + 1];
+    const price = num((body.match(/selling-price">\s*₹\s*([\d,]+)/) || [])[1]);
+    const image = (body.match(/src="(https:\/\/contents\.mediadecathlon\.com[^"]+)"/) || [])[1]?.replace(/&amp;/g, "&");
+    hits.push({ title, url: `https://www.decathlon.in${path}`, snippet: priceText(price), price, image });
+  }
+  return hits;
+}
+
 const READERS: Record<string, (q: string, signal: AbortSignal) => Promise<StoreHit[]>> = {
+  snapdeal,
+  decathlon,
   amazon,
   flipkart,
   myntra,
