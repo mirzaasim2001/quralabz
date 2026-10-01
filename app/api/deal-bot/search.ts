@@ -3,6 +3,7 @@
 // Ported from WB/search.py. The Python version used the ddgs library (browser-impersonating);
 // from Node, DuckDuckGo's HTML endpoint and Bing work, Yahoo rejects plain fetch with a 500.
 
+import { relevantHits, splitBudget } from "./relevance";
 import { searchStoreDirect, UA, type StoreHit } from "./stores";
 
 export { UA };
@@ -129,7 +130,9 @@ export interface StoreDiag {
 async function searchStore(product: string, store: string, signal: AbortSignal, diag: StoreDiag): Promise<RawHit[]> {
   const direct = await searchStoreDirect(store, product, signal);
   diag.directError = direct.error;
-  if (direct.hits.length) return direct.hits;
+  const relevant = relevantHits(direct.hits, product, MAX_HITS_PER_STORE);
+  if (relevant.length) return relevant;
+  if (direct.hits.length) diag.directError = `no match in ${direct.hits.length}`;
   if (signal.aborted) return [];
 
   const [domain] = STORES[store];
@@ -138,9 +141,10 @@ async function searchStore(product: string, store: string, signal: AbortSignal, 
   for (const engine of [duckduckgo, bing]) {
     try {
       const hits = (await engine(query, signal)).filter((h) => h.url.includes(domain) && PRODUCT_URL[store].test(h.url));
-      if (hits.length) {
+      const relevantFound = relevantHits(hits, product, MAX_HITS_PER_STORE);
+      if (relevantFound.length) {
         diag.source = "engine";
-        return hits.slice(0, MAX_HITS_PER_STORE);
+        return relevantFound;
       }
     } catch {
       if (signal.aborted) break;
@@ -177,8 +181,10 @@ export async function searchDeals(
     product = product.split(/[<>]/)[0].trim();
     maxPriceRaw = maxPriceRaw ?? leaked?.[1];
   }
+  const [withoutBudget, typedBudget] = splitBudget(product);
+  product = withoutBudget;
   const stores = pickStores(args.stores);
-  const maxPrice = parseBudget(maxPriceRaw);
+  const maxPrice = parseBudget(maxPriceRaw ?? typedBudget);
 
   // Don't wait on stragglers: after the deadline, slow stores are reported as timed out.
   const ctrl = new AbortController();

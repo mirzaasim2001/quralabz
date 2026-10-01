@@ -16,7 +16,7 @@ export interface StoreHit {
 }
 
 const HEADERS = { "User-Agent": UA, "Accept-Language": "en-IN,en;q=0.9" };
-const MAX_PER_STORE = 5;
+const MAX_PER_STORE = 20; // relevance.ts picks the best few from these
 
 const enc = encodeURIComponent;
 const num = (v: unknown) => {
