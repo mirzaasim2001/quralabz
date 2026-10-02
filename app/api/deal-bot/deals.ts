@@ -105,6 +105,16 @@ export function parseJson(text: string): { listings?: unknown[]; summary?: unkno
   }
 }
 
+/** An accessory whose title doesn't say so (AJIO's "Padded Lightweight Laptop" is a bag) costs a fraction of
+ * the real product: with 3+ priced rows, drop anything under a tenth of the median. Cheap fashion survives
+ * (₹500 jackets next to ₹7,000 ones), a ₹750 bag among ₹45,000 laptops doesn't. */
+export function withoutPriceOutliers<T extends { price: number | null }>(rows: T[]): T[] {
+  const prices = rows.map((r) => r.price).filter((p): p is number => p !== null).sort((a, b) => a - b);
+  if (prices.length < 3) return rows;
+  const median = prices[Math.floor(prices.length / 2)];
+  return rows.filter((r) => r.price === null || r.price >= median / 10);
+}
+
 /**
  * The model's picks become rows; only real result ids. Price: the product page's own listed price when it
  * could be read (exact and current), otherwise a price that appears in that result's search text.
@@ -131,13 +141,13 @@ export function pickRows(
       });
     }
   } else {
-    // Model output unusable: fall back to the first price in each result's own text.
+    // Results are already filtered and ranked by relevance.ts; price from the store's listing, else its text.
     for (const hit of artifact.hits) {
       const found = `${hit.title} ${hit.snippet}`.match(PRICE_ONE);
       const page = pages.get(hit.id);
       rows.push({
         ...hit,
-        product: hit.title,
+        product: shortName(hit.title),
         price: page?.price ?? hit.price ?? (found ? toPrice(found[1]) : null),
         image: page?.image ?? cleanImage(hit.image),
       });
@@ -149,6 +159,7 @@ export function pickRows(
   rows = rows.map((r) => (r.store === "amazon" ? { ...r, price: null, image: undefined } : r));
 
   if (artifact.maxPrice) rows = rows.filter((r) => r.price === null || r.price <= artifact.maxPrice!);
+  rows = withoutPriceOutliers(rows);
 
   // One cheapest row per store when comparing many stores; a few options when only one or two were searched.
   const perStore = artifact.stores.length === 1 ? 5 : Math.max(1, Math.floor(6 / artifact.stores.length));
@@ -166,6 +177,15 @@ export function pickRows(
 
 const rupees = (n: number) => `₹${n.toLocaleString("en-IN")}`;
 const cell = (text: string) => text.replace(/\s+/g, " ").replace(/\|/g, "/").slice(0, 80);
+
+/** Store titles run long ("iPhone 16 128 GB: 5G Mobile Phone with Camera Control, ..."): keep the name part. */
+export function shortName(title: string): string {
+  const t = title.replace(/\s+/g, " ").trim();
+  if (t.length <= 60) return t;
+  const cut = t.split(/\s*(?:[,:|]| - | \/ )\s*/)[0];
+  const words = (cut.split(" ").length >= 3 ? cut : t).split(" ");
+  return words.length > 10 ? `${words.slice(0, 10).join(" ")}…` : words.join(" ");
+}
 const storeName = (s: string) => STORES[s]?.[1] ?? s;
 
 export function renderAnswer(rows: Row[], artifact: SearchArtifact, summary: string): string {
@@ -178,7 +198,7 @@ export function renderAnswer(rows: Row[], artifact: SearchArtifact, summary: str
       .map((s) => [storeName(s), storeSearchUrl(s, artifact.product)] as const)
       .filter(([, url]) => url)
       .map(([name, url]) => `[${name}](${url})`);
-    return `😕 The stores didn't return listings for "${artifact.product}" just now. You can check them directly: ${links.join(" · ")}`;
+    return `🔎 Here's "${artifact.product}" on each store right now: ${links.join(" · ")}`;
   }
 
   const priced = rows.filter((r) => r.price !== null);
@@ -190,15 +210,18 @@ export function renderAnswer(rows: Row[], artifact: SearchArtifact, summary: str
     const link = affiliateUrl(r.store, r.url).replace(/ /g, "%20").replace(/\)/g, "%29");
     lines.push(`| ${r.price === null ? "–" : i + 1} | ${store} | ${cell(r.product)} | ${price} | [View](${link}) |`);
   });
-  for (const s of artifact.stores) {
-    if (rows.some((r) => r.store === s)) continue;
-    const status = artifact.timedOut.includes(s) ? "⏳ Search timed out" : "❌ No listing found";
-    lines.push(`| – | ${storeName(s)} | ${status} | – | – |`);
-  }
+  // Stores that returned nothing (usually because they refused the request) get a link to their own search
+  // instead of a "no listing" row.
+  const more = artifact.unread
+    .filter((s) => !rows.some((r) => r.store === s))
+    .map((s) => [storeName(s), storeSearchUrl(s, artifact.product)] as const)
+    .filter(([, url]) => url)
+    .map(([name, url]) => `[${name}](${url})`);
+  const alsoCheck = more.length ? `\n\n🔗 Also check: ${more.join(" · ")}` : "";
 
   let verdict: string;
   if (!priced.length) {
-    verdict = "🔎 No prices could be read for these listings. Open the links to compare.";
+    verdict = "🛒 Tap View to see today's price on each listing.";
   } else {
     const best = priced[0];
     const rival = priced.find((r) => r.store !== best.store);
@@ -210,7 +233,7 @@ export function renderAnswer(rows: Row[], artifact: SearchArtifact, summary: str
       else verdict += ` 💰 ${rupees(rival.price! - best.price!)} less than ${storeName(rival.store)} (${rupees(rival.price!)}).`;
     }
   }
-  return `${productCard(rows, priced[0])}${lines.join("\n")}\n\n${verdict}${summary ? `\n\n💡 ${summary}` : ""}`;
+  return `${productCard(rows, priced[0])}${lines.join("\n")}\n\n${verdict}${summary ? `\n\n💡 ${summary}` : ""}${alsoCheck}`;
 }
 
 /** One product image above the table: the best deal's, else the first listing that has one. */

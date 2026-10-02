@@ -43,7 +43,10 @@ async function amazon(q: string, signal: AbortSignal): Promise<StoreHit[]> {
   const html = await get(`https://www.amazon.in/s?k=${enc(q)}`, signal);
   const hits: StoreHit[] = [];
   for (const block of html.split('data-component-type="s-search-result"').slice(1)) {
-    const title = decode((block.match(/<h2[^>]*aria-label="([^"]+)"/) || block.match(/<h2[^>]*>[\s\S]*?<span[^>]*>([^<]+)<\/span>/) || [])[1] ?? "");
+    let title = decode((block.match(/<h2[^>]*aria-label="([^"]+)"/) || block.match(/<h2[^>]*>[\s\S]*?<span[^>]*>([^<]+)<\/span>/) || [])[1] ?? "");
+    // Newer cards put the brand in a small heading above a title that leaves it out ("WH-1000XM5 Best ...").
+    const brand = decode((block.match(/<h2 class="a-size-mini[^"]*"><span[^>]*>([^<]+)<\/span>/) || [])[1] ?? "");
+    if (brand && !title.toLowerCase().startsWith(brand.toLowerCase())) title = `${brand} ${title}`;
     const asin = (block.match(/\/dp\/([A-Z0-9]{10})/) || [])[1];
     if (!title || !asin || /^Sponsored/i.test(title) || block.includes("puis-sponsored-label")) continue;
     const price = num((block.match(/a-price-whole">([\d,]+)/) || [])[1]);
@@ -94,9 +97,11 @@ async function ajio(q: string, signal: AbortSignal): Promise<StoreHit[]> {
   const data = JSON.parse(await get(url, signal, "application/json"));
   return (data?.products ?? []).map((p: Record<string, any>) => {
     const price = num(p.price?.value);
-    const brand = p.fnlColorVariantData?.brandName;
+    const name = String(p.name ?? "");
+    const brand = String(p.fnlColorVariantData?.brandName ?? "");
     return {
-      title: `${brand ? `${brand} ` : ""}${p.name ?? ""}`,
+      // Some names already start with the brand ("Sony Wh-1000Xm5 ..."): don't repeat it.
+      title: brand && !name.toLowerCase().startsWith(brand.toLowerCase()) ? `${brand} ${name}` : name,
       url: `https://www.ajio.com${p.url}`,
       snippet: priceText(price),
       price,
@@ -136,9 +141,10 @@ async function snapdeal(q: string, signal: AbortSignal): Promise<StoreHit[]> {
   const hits: StoreHit[] = [];
   for (const block of html.split("product-tuple-listing").slice(1)) {
     const url = (block.match(/href="(https:\/\/www\.snapdeal\.com\/product\/[^"]+)"/) || [])[1];
-    const title = decode((block.match(/class="product-title"[^>]*title="([^"]+)"/) || [])[1] ?? "");
+    // Snapdeal's class attributes carry a trailing space ("product-title "), so match the class loosely.
+    const title = decode((block.match(/class="product-title[^"]*"[^>]*title="([^"]+)"/) || [])[1] ?? "");
     if (!url || !title) continue;
-    const price = num((block.match(/class="lfloat product-price"[^>]*>\s*Rs\.?\s*([\d,]+)/) || block.match(/display-price="(\d+)"/) || [])[1]);
+    const price = num((block.match(/class="lfloat product-price[^"]*"[^>]*>\s*Rs\.?\s*([\d,]+)/) || block.match(/display-price="(\d+)"/) || [])[1]);
     const image = (block.match(/<img[^>]*src="(https:\/\/g\.sdlcdn\.com[^"]+)"/) || [])[1];
     hits.push({ title, url, snippet: priceText(price), price, image });
   }

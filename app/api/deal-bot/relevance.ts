@@ -9,7 +9,7 @@ const GENERIC = new Set(
     "use home everyday").split(" "),
 );
 const MEN = new Set(["men", "man", "male", "boy", "gent", "gents", "gentlemen"]);
-const WOMEN = new Set(["women", "woman", "female", "girl", "lady", "ladies"]);
+const WOMEN = new Set(["women", "woman", "female", "girl", "lady", "ladies", "ladie"]); // "ladie": plural-trimmed "ladies"
 const VARIANTS = new Set(["pro", "max", "plus", "ultra", "mini", "lite", "fe", "neo", "refurbished", "renewed"]);
 const ACCESSORIES = new Set(
   ("case cover covers protector guard tempered glass skin strap charger cable adapter stand holder pouch sticker lens " +
@@ -54,17 +54,19 @@ export function relevance(query: string, title: string, strict = true): number {
   const words = queryWords(query);
   if (!words.length) return 0;
 
-  // Short queries need every word (the brand can't be dropped); longer ones need model numbers, sizes and
-  // every part of a model code ("wh-1000xm5").
+  // Short queries need their key words: both of a 2-word query; the first (brand/material: "Nike", "leather")
+  // and last (product type) of a 3-word one, so a model-added word like "winter" in "leather winter jacket"
+  // can't knock out real leather jackets. All need model numbers, sizes and every part of a model code.
   const codeParts = new Set(
     (decode(query).toLowerCase().match(/[a-z0-9]+(?:-[a-z0-9]+)+/g) ?? []).filter((c) => /\d/.test(c)).flatMap(tokens),
   );
-  let hard = words.length <= 3 ? words : words.filter((t) => /\d/.test(t) || codeParts.has(t));
+  const keyWords = words.length <= 2 ? words : words.length === 3 ? [words[0], words[2]] : [];
+  let hard = [...keyWords, ...words.filter((t) => /\d/.test(t) || codeParts.has(t))];
   if (!strict) hard = words.slice(0, 1);
   if (hard.some((t) => !have.has(t))) return 0;
 
   // The product is named at the start of its title, or its type ends it ("... Thin and Light Laptop").
-  if (![...all.slice(0, 6), ...all.slice(-1)].some((t) => words.includes(t))) return 0;
+  if (![...all.slice(0, 10), ...all.slice(-1)].some((t) => words.includes(t))) return 0;
   // "iPhone 16 Pro" isn't "iPhone 16" (checked in the name part only: long titles say "Windows 11 Pro" later).
   if (hasModelNumber(words) && all.slice(0, 8).some((t) => VARIANTS.has(t) && !qset.has(t))) return 0;
   // Accessories say so in their name; a phone only mentions one as included ("with charging case").
@@ -94,15 +96,30 @@ export function splitBudget(product: string): [string, string | undefined] {
   return m ? [product.replace(BUDGET_IN_TEXT, " ").replace(/\s+/g, " ").trim(), m[1]] : [product, undefined];
 }
 
-/** The relevant listings, most relevant first; the looser pass only when a spec list matched nothing. */
-export function relevantHits<T extends { title: string; price?: number }>(hits: T[], query: string, limit: number): T[] {
-  const rank = (strict: boolean) =>
+/** Same type of product as asked, for when nothing matches exactly: "men's leather jacket" -> other men's jackets.
+ * The product type is the query's last word; listings must still pass the accessory, gender and position checks.
+ * Not for named models: a different phone than "iPhone 16" isn't a similar deal, it's a wrong answer. */
+function similar(query: string, title: string): number {
+  const words = queryWords(query);
+  if (words.length < 2 || hasModelNumber(tokens(query))) return 0;
+  return relevance(words[words.length - 1] + " " + tokens(query).filter((t) => MEN.has(t) || WOMEN.has(t)).join(" "), title);
+}
+
+/** The relevant listings, most relevant first. If nothing matches exactly: a looser pass for spec lists, then
+ * similar products of the same type. */
+export function relevantHits<T extends { title: string; price?: number }>(
+  hits: T[],
+  query: string,
+  limit: number,
+): { hits: T[]; similar: boolean } {
+  const rank = (score: (title: string) => number) =>
     hits
-      .map((h) => ({ h, score: relevance(query, h.title, strict) }))
+      .map((h) => ({ h, score: score(h.title) }))
       .filter((x) => x.score > 0)
       .sort((a, b) => b.score - a.score || (a.h.price ?? Infinity) - (b.h.price ?? Infinity))
       .map((x) => x.h);
-  let kept = rank(true);
-  if (!kept.length && isSpecList(query)) kept = rank(false);
-  return kept.slice(0, limit);
+  let kept = rank((t) => relevance(query, t));
+  if (!kept.length && isSpecList(query)) kept = rank((t) => relevance(query, t, false));
+  if (kept.length) return { hits: kept.slice(0, limit), similar: false };
+  return { hits: rank((t) => similar(query, t)).slice(0, limit), similar: true };
 }

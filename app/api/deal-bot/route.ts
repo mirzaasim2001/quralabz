@@ -6,12 +6,11 @@
 
 import { NextRequest } from "next/server";
 import { chat, type ChatMessage, type LlmResult } from "./llm";
-import { searchDeals } from "./search";
-import { readProductPages } from "./pages";
-import { chatHistory, hasPrice, historyNote, madeUp, parseJson, pickRows, questionsAsked, renderAnswer, tail, type Turn } from "./deals";
+import { searchDeals, STORES } from "./search";
+import { readProductPages, type PageInfo } from "./pages";
+import { chatHistory, historyNote, madeUp, pickRows, questionsAsked, renderAnswer, tail, type Turn } from "./deals";
 import {
   AFTER_ANSWER,
-  ANSWER_PROMPT,
   CORRECTION,
   DECLINE,
   MAX_QUESTIONS,
@@ -34,8 +33,7 @@ const MAX_TURNS = 40;
 // Every model call in one reply shares this budget, so a reply finishes well inside maxDuration (60s)
 // instead of Vercel cutting the stream off mid-way.
 const REPLY_BUDGET_MS = 50_000;
-// Below this much time left, the table is built from the raw results instead of asking the picker model.
-const PICKER_MIN_MS = 8_000;
+const PAGES_WAIT_MS = 1_200;
 const MAX_MESSAGE_CHARS = 1000;
 
 type Send = (event: string, data: unknown) => void;
@@ -126,40 +124,32 @@ async function respond(history: Turn[], message: string, send: Send, debug = fal
 
   send("status", "🔍 Searching stores for deals…");
   const searchAt = Date.now();
-  const { text, artifact, diagnostics } = await searchDeals(call.args);
+  // A one-store search is for "anything on amazon?". The model sometimes passes a single store the user never
+  // named ("sony wh-1000xm5" -> only Reliance), which hides every other store's deal: search all of them.
+  const said = turns.filter((t) => t.role === "user").slice(-3).map((t) => t.content.toLowerCase()).join(" ");
+  const asked = [call.args.stores].flat().filter(Boolean).map(String);
+  if (asked.length === 1) {
+    const key = asked[0].toLowerCase().replace(/\s+/g, "");
+    const names = [key, STORES[key]?.[1].toLowerCase(), STORES[key]?.[0].split(".")[0]].filter(Boolean) as string[];
+    if (!names.some((n) => said.includes(n))) delete call.args.stores;
+  }
+  const { artifact, diagnostics } = await searchDeals(call.args);
   send("status", "⚖️ Comparing prices…");
   const pickAt = Date.now();
-  // Product pages (image + exact price) are read while the picker model runs, so they cost ~0-1s extra.
-  const pagesReady = readProductPages(artifact.hits);
-
-  // The picker only chooses listings (JSON, no tools; with tools Nemotron writes fake tool-call XML).
-  // Sorting, per-store rows and the savings line are done in code so they're always right.
-  const pickerConvo: ChatMessage[] = [...convo];
-  if (lead.trim()) pickerConvo.push({ role: "assistant", content: lead });
-  const results = `Search results:\n${text}`;
-  const last = pickerConvo[pickerConvo.length - 1];
-  if (last.role === "user") pickerConvo[pickerConvo.length - 1] = { role: "user", content: `${last.content}\n\n${results}` };
-  else pickerConvo.push({ role: "user", content: results });
-
-  // With no picks (models all down, or too little time left), pickRows builds the table from the raw results.
-  let picked: ReturnType<typeof parseJson> = null;
-  if (artifact.hits.length && deadline - Date.now() > PICKER_MIN_MS) {
-    try {
-      picked = parseJson((await chat({ messages: [{ role: "system", content: ANSWER_PROMPT }, ...pickerConvo], temperature: 0.2 }, deadline)).content);
-    } catch {
-      picked = null;
-    }
-  }
-  const rows = pickRows(picked, artifact, await pagesReady);
+  // No second model call: relevance.ts already keeps only the product asked about (or similar ones), and
+  // sorting, per-store rows and the savings line are done in code. That call cost 1-3s, far more when NVIDIA
+  // is slow. Product pages fill in a missing price or image, but never hold the answer up by more than this.
+  const pages = await Promise.race([
+    readProductPages(artifact.hits),
+    new Promise<Map<number, PageInfo>>((r) => setTimeout(() => r(new Map()), PAGES_WAIT_MS)),
+  ]);
+  const rows = pickRows(null, artifact, pages);
   // Only when the request asks (debug: true): which stores answered, how, and how fast. No secrets in it.
   if (debug) {
     const now = Date.now();
-    send("debug", { stores: diagnostics, picked: picked?.listings?.length ?? null, rows: rows.length, ms: { decide: searchAt - started, search: pickAt - searchAt, pickAndPages: now - pickAt } });
+    send("debug", { stores: diagnostics, rows: rows.length, ms: { decide: searchAt - started, search: pickAt - searchAt, pages: now - pickAt } });
   }
-  let summary = typeof picked?.summary === "string" ? picked.summary : "";
-  // Prices belong only in the verified table: the picker sees only search text, so any price talk can contradict it.
-  if (hasPrice(summary) || /\bprices?\b/i.test(summary)) summary = "";
-  const answer = renderAnswer(rows, artifact, summary);
+  const answer = renderAnswer(rows, artifact, "");
 
   send("token", `\n\n${answer}`);
   const note = historyNote(rows, artifact);

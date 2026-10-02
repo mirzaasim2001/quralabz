@@ -24,7 +24,7 @@ export const STORES: Record<string, [domain: string, name: string]> = {
 const ALWAYS_SEARCH = ["amazon", "flipkart", "snapdeal"];
 const MAX_STORES = 7;
 const MAX_HITS_PER_STORE = 3;
-const SEARCH_DEADLINE_MS = 4000;
+const SEARCH_DEADLINE_MS = 3000;
 
 // URL shapes of single-product pages. Search/category pages ("Jackets for Men") are dropped: they have
 // no single product or price and just send the user off to browse.
@@ -49,10 +49,19 @@ type RawHit = StoreHit;
 
 export interface SearchArtifact {
   product: string;
+  /** Stores named in the reply: the ones the model asked for, plus any other store that had the product. */
   stores: string[];
+  /** Named stores worth a link to their own search: they couldn't be read (blocked, too slow) or only had
+   * similar items. Stores that answered without the product (Croma for kurtas) aren't linked. */
+  unread: string[];
   hits: Hit[];
   timedOut: string[];
   maxPrice: number | null;
+}
+
+/** Search-engine titles carry store boilerplate: "Buy Saint G Men Jacket Online at Best Price | Tata CLiQ". */
+function engineTitle(title: string): string {
+  return title.replace(/^buy\s+/i, "").replace(/\s+online\b.*$/i, "").replace(/\s+[|]\s+.*$/, "").trim() || title;
 }
 
 function cleanText(html: string): string {
@@ -86,7 +95,7 @@ async function duckduckgo(query: string, signal: AbortSignal): Promise<RawHit[]>
       if (redirect) url = decodeURIComponent(redirect[1]);
       return {
         url: url.replace(/&amp;/g, "&"),
-        title: cleanText((block.match(/>([\s\S]*?)<\/a>/) || [])[1] || ""),
+        title: engineTitle(cleanText((block.match(/>([\s\S]*?)<\/a>/) || [])[1] || "")),
         snippet: cleanText((block.match(/class="result__snippet"[^>]*>([\s\S]*?)<\/a>/) || [])[1] || ""),
       };
     })
@@ -111,7 +120,7 @@ async function bing(query: string, signal: AbortSignal): Promise<RawHit[]> {
       const caption = block.split(/class="b_caption[^"]*"/)[1] || "";
       return {
         url,
-        title: cleanText(h2),
+        title: engineTitle(cleanText(h2)),
         snippet: cleanText((caption.match(/<p[^>]*>([\s\S]*?)<\/p>/) || [])[1] || ""),
       };
     })
@@ -127,13 +136,30 @@ export interface StoreDiag {
   directError?: string;
 }
 
-async function searchStore(product: string, store: string, signal: AbortSignal, diag: StoreDiag): Promise<RawHit[]> {
+interface StoreResult {
+  hits: RawHit[];
+  similar: boolean; // no exact match: same type of product instead
+  answered: boolean; // the store returned a results page (so an empty result means it doesn't sell this)
+}
+
+async function searchStore(
+  product: string,
+  store: string,
+  maxPrice: number | null,
+  signal: AbortSignal,
+  diag: StoreDiag,
+): Promise<StoreResult> {
+  // Over-budget listings go before picking each store's best few, or they can crowd out in-budget ones.
+  const affordable = <T extends { price?: number }>(hits: T[]) => (maxPrice ? hits.filter((h) => !h.price || h.price <= maxPrice) : hits);
   const direct = await searchStoreDirect(store, product, signal);
   diag.directError = direct.error;
-  const relevant = relevantHits(direct.hits, product, MAX_HITS_PER_STORE);
-  if (relevant.length) return relevant;
-  if (direct.hits.length) diag.directError = `no match in ${direct.hits.length}`;
-  if (signal.aborted) return [];
+  const relevant = relevantHits(affordable(direct.hits), product, MAX_HITS_PER_STORE);
+  if (relevant.hits.length && !relevant.similar) return { ...relevant, answered: true };
+  if (direct.hits.length) {
+    diag.directError = `no exact match in ${direct.hits.length}`;
+    return { ...relevant, answered: true }; // the store's own results beat a search engine's guess
+  }
+  if (signal.aborted) return { hits: [], similar: false, answered: false };
 
   const [domain] = STORES[store];
   const query = `${product} price site:${domain}`;
@@ -141,17 +167,22 @@ async function searchStore(product: string, store: string, signal: AbortSignal, 
   for (const engine of [duckduckgo, bing]) {
     try {
       const hits = (await engine(query, signal)).filter((h) => h.url.includes(domain) && PRODUCT_URL[store].test(h.url));
-      const relevantFound = relevantHits(hits, product, MAX_HITS_PER_STORE);
-      if (relevantFound.length) {
+      const found = relevantHits(affordable(hits), product, MAX_HITS_PER_STORE);
+      if (found.hits.length) {
         diag.source = "engine";
-        return relevantFound;
+        return { ...found, answered: false };
       }
     } catch {
       if (signal.aborted) break;
     }
   }
-  return [];
+  return { hits: [], similar: false, answered: false };
 }
+
+// Stores whose own search we can read. All of them are searched every time (in parallel, so it costs no time):
+// the model sometimes leaves out a store that has the product. Tata CLiQ and Nykaa need a browser, so they're
+// only searched (through search engines) when the model names them.
+const READABLE = ["amazon", "flipkart", "snapdeal", "myntra", "ajio", "croma", "reliancedigital", "decathlon"];
 
 export function pickStores(stores: unknown): string[] {
   const list = typeof stores === "string" ? stores.split(/[,/&]| and /) : Array.isArray(stores) ? stores : [];
@@ -183,44 +214,53 @@ export async function searchDeals(
   }
   const [withoutBudget, typedBudget] = splitBudget(product);
   product = withoutBudget;
-  const stores = pickStores(args.stores);
+  const named = pickStores(args.stores);
+  const stores = named.length === 1 ? named : Array.from(new Set([...named, ...READABLE]));
   const maxPrice = parseBudget(maxPriceRaw ?? typedBudget);
 
   // Don't wait on stragglers: after the deadline, slow stores are reported as timed out.
   const ctrl = new AbortController();
-  const results = new Map<string, RawHit[]>();
+  const results = new Map<string, StoreResult>();
   const started = Date.now();
   const diagnostics: StoreDiag[] = stores.map((store) => ({ store, ms: SEARCH_DEADLINE_MS, source: "none", count: 0 }));
   const all = Promise.all(
     stores.map((s, i) =>
-      searchStore(product, s, ctrl.signal, diagnostics[i]).then((hits) => {
-        results.set(s, hits);
+      searchStore(product, s, maxPrice, ctrl.signal, diagnostics[i]).then((result) => {
+        results.set(s, result);
         const d = diagnostics[i];
-        Object.assign(d, { ms: Date.now() - started, count: hits.length, source: hits.length && d.source === "none" ? "direct" : d.source });
+        const count = result.hits.length;
+        Object.assign(d, { ms: Date.now() - started, count, source: count && d.source === "none" ? "direct" : d.source });
       }),
     ),
   );
   await Promise.race([all, new Promise((r) => setTimeout(r, SEARCH_DEADLINE_MS))]);
   ctrl.abort();
 
-  // Hits are numbered so the model can refer to them by id instead of copying URLs.
+  // Similar products only fill in when no store has the exact one: a down jacket shouldn't sit next to real
+  // leather jackets just because one store had no leather ones.
+  const anyExact = Array.from(results.values()).some((r) => r.hits.length && !r.similar);
+  const usable = (store: string) => {
+    const r = results.get(store);
+    return r && r.hits.length && (!anyExact || !r.similar) ? r.hits : [];
+  };
+
   const hits: Hit[] = [];
-  const timedOut: string[] = [];
+  const timedOut = stores.filter((s) => !results.has(s));
+  const shown = [...named, ...stores.filter((s) => !named.includes(s) && usable(s).length)];
+  const unread = named.filter((s) => {
+    const r = results.get(s);
+    return !usable(s).length && (!r || !r.answered || r.similar);
+  });
   const lines: string[] = maxPrice ? [`(User budget: up to ₹${maxPrice.toLocaleString("en-IN")})`] : [];
-  for (const store of stores) {
+  for (const store of shown) {
     lines.push(`## ${STORES[store][1]}`);
-    const found = results.get(store);
-    if (!found) {
-      timedOut.push(store);
-      lines.push("Search timed out.");
-      continue;
-    }
-    if (!found.length) lines.push("No results found.");
+    const found = usable(store);
+    if (!found.length) lines.push("No results.");
     for (const h of found) {
       const hit = { id: hits.length + 1, store, ...h };
       hits.push(hit);
       lines.push(`[${hit.id}] ${hit.title}\n    ${hit.snippet}`);
     }
   }
-  return { text: lines.join("\n"), artifact: { product, stores, hits, timedOut, maxPrice }, diagnostics };
+  return { text: lines.join("\n"), artifact: { product, stores: shown, unread, hits, timedOut, maxPrice }, diagnostics };
 }
