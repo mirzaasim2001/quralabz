@@ -256,3 +256,34 @@ export function historyNote(rows: Row[], artifact: SearchArtifact): string {
   for (const s of artifact.stores) if (!rows.some((r) => r.store === s)) parts.push(`${storeName(s)}: no listing found`);
   return `[Deal results shown to the user for "${artifact.product}": ${parts.join("; ")}]`;
 }
+
+/**
+ * The same deals as renderAnswer, for WhatsApp: no tables there, so one block per listing, cheapest first, with
+ * *bold* store and price (WhatsApp's own markup) and the link on its own line so it's tappable.
+ */
+export function renderWhatsApp(rows: Row[], artifact: SearchArtifact): string {
+  const nl = String.fromCharCode(10);
+  const storeLink = (s: string) => [storeName(s), storeSearchUrl(s, artifact.product)] as const;
+  if (!rows.length) {
+    const links = artifact.stores.map(storeLink).filter(([, url]) => url).map(([name, url]) => `*${name}*${nl}${url}`);
+    return `🔎 Here's "${artifact.product}" on each store right now:${nl}${nl}${links.join(nl + nl)}`;
+  }
+  const priced = rows.filter((r) => r.price !== null);
+  const blocks = rows.slice(0, 7).map((r, i) => {
+    const best = priced.length > 0 && r === priced[0];
+    const mark = best ? "🏆" : r.price === null ? "🛒" : `${i + 1}.`;
+    const price = r.price === null ? "tap to see price" : `*${rupees(r.price)}*`;
+    const link = affiliateUrl(r.store, r.url).replace(/ /g, "%20");
+    return `${mark} *${storeName(r.store)}* · ${price}${nl}${cell(r.product)}${nl}${link}`;
+  });
+  let verdict = "";
+  if (priced.length) {
+    const best = priced[0];
+    const rival = priced.find((r) => r.store !== best.store);
+    verdict = `${nl}${nl}🏆 *Best deal: ${storeName(best.store)} at ${rupees(best.price!)}*`;
+    if (rival && rival.price !== best.price) verdict += ` · ${rupees(rival.price! - best.price!)} less than ${storeName(rival.store)}`;
+  }
+  const more = artifact.unread.filter((s) => !rows.some((r) => r.store === s)).map(storeLink).filter(([, url]) => url);
+  const alsoCheck = more.length ? `${nl}${nl}🔗 Also check:${nl}${more.map(([n, u]) => `${n}: ${u}`).join(nl)}` : "";
+  return `${blocks.join(nl + nl)}${verdict}${alsoCheck}`;
+}
