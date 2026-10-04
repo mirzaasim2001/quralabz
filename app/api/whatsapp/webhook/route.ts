@@ -112,6 +112,9 @@ export async function POST(req: NextRequest) {
   const jobs: Promise<void>[] = [];
   for (const entry of payload?.entry ?? []) {
     for (const change of entry?.changes ?? []) {
+      // Meta's dashboard "Test" button sends a sample message addressed to a dummy phone number ID, from a made-up
+      // sender. Only messages sent to our own number are real; acknowledge the sample and don't reply to it.
+      if (String(change?.value?.metadata?.phone_number_id ?? "") !== String(process.env.WHATSAPP_PHONE_NUMBER_ID)) continue;
       for (const m of change?.value?.messages ?? []) {
         if (!m?.id || !m?.from || seen.has(m.id)) continue;
         seen.set(m.id, Date.now());
